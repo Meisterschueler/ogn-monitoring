@@ -2,28 +2,115 @@ version: '3'
 
 services:
   timescaledb:
-    image: timescale/timescaledb:latest-pg14
+    # image: timescaledev/timescaledb-ha:pg15-ts2.9-multi
+    # image: k4black/timescaledb-postgis:latest-pg13
+    image: xbgmsharp/timescaledb-postgis:latest
     container_name: timescaledb
     restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
       - 5432:5432
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ogn
     volumes:
-      - ./sql/init.sql:/docker-entrypoint-initdb.d/100_init.sql
-      - ./data/timescaledb:/var/lib/postgresql/data
-      - ./data/ogn_logfiles:/mnt/ogn_logfiles
+      - ./sql/timescaledb-initdb:/docker-entrypoint-initdb.d
+      - ${DOCKERVOLUMES}/timescaledb:/var/lib/postgresql/data
+#      - ./data/ogn_logfiles:/mnt/ogn_logfiles
+#      - /Volumes/Datenhalde/timescaledb:/var/lib/postgresql/data
+#      - /Volumes/LaCieBlack/OGNDATA:/mnt/ogn_logfiles
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
     command:  # we need these commands for pg_stat_statements
-      - -cshared_preload_libraries=timescaledb,pg_stat_statements
+      - -cshared_preload_libraries=timescaledb,pg_stat_statements,pg_cron
+      - -ccron.database_name=${POSTGRES_DB}
       - -cpg_stat_statements.track=all
     networks:
       - monitoring
 
+  ogn:
+    image: ogn-client-rs
+    container_name: ogn
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    restart: unless-stopped
+    command: ogn-client --target postgre-sql --database-url postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@timescaledb:5432/${POSTGRES_DB}
+    networks:
+      - monitoring
+
+  countries:
+    image: countries
+    container_name: countries
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    command: sh ./update_borders.sh
+    networks:
+      - monitoring
+  
+  ressources:
+    image: ressources
+    container_name: ressources
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    command: ./cron_ressources.sh
+    networks:
+      - monitoring
+
+  openaip:
+    image: openaip
+    container_name: openaip
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    command: sh ./update_openaip.sh
+    networks:
+      - monitoring
+
+#  questdb:
+#    image: questdb/questdb:6.7
+#    container_name: questdb
+#    restart: unless-stopped
+#    ports:
+#      - 9000:9000 # REST API and Web Console
+#      - 9009:9009 # InfluxDB line protocol
+#      - 8812:8812 # Postgres wire protocol
+#      - 9003:9003 # Min health server
+#    environment:
+#      QDB_PG_USER: ${POSTGRES_USER}
+#      QDB_PG_PASSWORD: ${POSTGRES_PASSWORD}
+#      QDB_CAIRO_SQL_COPY_ROOT: /mnt/ogn_logfiles
+#    volumes:
+#      - ./data/questdb:/var/lib/questdb
+#      - ./data/ogn_logfiles:/mnt/ogn_logfiles
+#    networks:
+#      - monitoring
+
   pgadmin:
     image: dpage/pgadmin4
     container_name: pgadmin4
+    depends_on:
+      - timescaledb
     restart: unless-stopped
     ports:
       - "${PGADMIN_PORT:-5050:80}"
@@ -31,34 +118,40 @@ services:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-pgadmin4@pgadmin.org}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
       PGADMIN_CONFIG_SERVER_MODE: 'False'
-    volumes:
-      - ./data/pgadmin:/var/lib/pgadmin
-    networks:
-      - monitoring
-  
-  zeppelin:
-    image: apache/zeppelin:0.10.1
-    container_name: zeppelin
-    restart: unless-stopped
-    ports:
-      - 8080:8080
-    volumes:
-      - ./data/zeppelin/logs:/logs
-      - ./data/zeppelin/notebook:/notebook
-    #  - ./data/zeppelin/interpreter.json:/opt/zeppelin/conf/interpreter.json
     networks:
       - monitoring
 
   grafana:
     image: grafana/grafana:latest
+    user: "0"
     container_name: grafana
+    depends_on:
+      - timescaledb
     restart: unless-stopped
     ports:
       - 3000:3000
-    #volumes:
-    #  - ./data/grafana/dashboard:/etc/extra-config/grafana
+    environment:
+      GF_INSTALL_PLUGINS: grafana-worldmap-panel,pr0ps-trackmap-panel
+      # GF_SERVER_ROOT_URL: https://localhost/grafana
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
     networks:
       - monitoring
+
+#  nginx:
+#    image: nginx:latest
+#    container_name: nginx
+#    depends_on:
+#      - timescaledb
+#      - grafana
+#    ports:
+#      - 80:80
+#      - 443:443
+#    volumes:
+#      - ${DOCKERVOLUMES}/nginx/nginx.conf:/etc/nginx/nginx.conf
+#    networks:
+#      - monitoring
 
 networks:
   monitoring:

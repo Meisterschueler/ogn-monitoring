@@ -1,0 +1,426 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_TIMESCALEDB",
+      "label": "TimescaleDB",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "postgres",
+      "pluginName": "PostgreSQL"
+    }
+  ],
+  "__elements": {},
+  "__requires": [
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "9.4.3"
+    },
+    {
+      "type": "datasource",
+      "id": "postgres",
+      "name": "PostgreSQL",
+      "version": "1.0.0"
+    },
+    {
+      "type": "panel",
+      "id": "table",
+      "name": "Table",
+      "version": ""
+    }
+  ],
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "target": {
+          "limit": 100,
+          "matchAny": false,
+          "tags": [],
+          "type": "dashboard"
+        },
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "${DS_TIMESCALEDB}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": false,
+            "inspect": false
+          },
+          "mappings": [
+            {
+              "options": {
+                "0x03": {
+                  "index": 0,
+                  "text": "Classic F6"
+                },
+                "0x10": {
+                  "index": 1,
+                  "text": "Minibox / LX7007"
+                },
+                "0x11": {
+                  "index": 2,
+                  "text": "Red box"
+                },
+                "0x12": {
+                  "index": 3,
+                  "text": "Red box"
+                },
+                "0x16": {
+                  "index": 4,
+                  "text": "LX8000 / LX9000"
+                },
+                "0x214": {
+                  "index": 6,
+                  "text": "Minimouse"
+                },
+                "0x50": {
+                  "index": 5,
+                  "text": "TRX-1500"
+                },
+                "ERROR": {
+                  "index": 13,
+                  "text": "❌"
+                },
+                "GENERIC": {
+                  "index": 9,
+                  "text": "✅"
+                },
+                "NO": {
+                  "index": 12,
+                  "text": "❌"
+                },
+                "OK": {
+                  "index": 8,
+                  "text": "✅"
+                },
+                "UNKNOWN": {
+                  "index": 10,
+                  "text": "🤔"
+                },
+                "WARNING": {
+                  "index": 11,
+                  "text": "🤔"
+                },
+                "YES": {
+                  "index": 7,
+                  "text": "✅"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "address_type"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 104
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "reg:ok"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 64
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "icao:flag"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 73
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "reg:flag"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 68
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "flag:ok"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 62
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "icao:ok"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 66
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "flarm:aircraft"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 105
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "flarm:name"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 117
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ddb:reg"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 95
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "flarm:addr"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 84
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ddb:addr"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 77
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "addr:ok"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 65
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ddb:cat"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 83
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ddb:model"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 109
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 27,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": false,
+            "displayName": "ddb:reg"
+          }
+        ]
+      },
+      "pluginVersion": "9.4.3",
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "${DS_TIMESCALEDB}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT\n\tsender_name AS \"flarm:name\",\n\tiso2_to_emoji(registration_iso2) AS \"reg:flag\",\n\tCASE sender_name LIKE 'ICA%' OR sender_name LIKE 'PAW%'\n\t\tWHEN TRUE THEN iso2_to_emoji(icao24bit_iso2)\n\t\tELSE ''\n\tEND AS \"icao:flag\",\n\tcheck_iso2 AS \"flag:ok\",\n  CASE sender_aircraft_type\n\t\tWHEN 1 THEN 'GLIDER'\n\t\tWHEN 2 THEN 'TOWPLANE'\n\t\tWHEN 3 THEN 'HELICOPTER'\n\t\tWHEN 4 THEN 'PARACHUTE'\n\t\tWHEN 5 THEN 'DROP PLANE'\n\t\tWHEN 6 THEN 'HANG-GLIDER'\n\t\tWHEN 7 THEN 'PARA-GLIDER'\n\t\tWHEN 8 THEN 'POWERED AIRCRAFT'\n\t\tWHEN 9 THEN 'JET AIRCRAFT'\n\t\tWHEN 10 THEN 'UFO'\n\t\tWHEN 11 THEN 'BALLOON'\n\t\tWHEN 12 THEN 'AIRSHIP'\n\t\tWHEN 13 THEN 'UAV'\n\t\tWHEN 14 THEN 'GROUND SUPPORT'\n\t\tWHEN 15 THEN 'STATIC OBJECT'\n\tEND AS \"flarm:aircraft\",\n\tddb_registration AS \"ddb:reg\",\n  check_registration_aircraft_types AS \"reg:ok\",\n\tcheck_registration_double AS \"reg:double\",\n\tCASE sender_address_type\n\t\tWHEN 0 THEN 'UNKNOWN'\n\t\tWHEN 1 THEN 'ICAO'\n\t\tWHEN 2 THEN 'FLARM'\n\t\tWHEN 3 THEN 'OGN'\n\tEND AS \"flarm:addr\",\n\tCASE ddb_address_type\n\t\tWHEN 0 THEN 'UNKNOWN'\n\t\tWHEN 1 THEN 'ICAO'\n\t\tWHEN 2 THEN 'FLARM'\n\t\tWHEN 3 THEN 'OGN'\n\tEND AS \"ddb:addr\",\n  check_address_type AS \"addr:ok\",\n\tCASE ddb_model_type\n\t\tWHEN 1 THEN 'GLIDERS'\n\t\tWHEN 2 THEN 'PLANES'\n\t\tWHEN 3 THEN 'ULTRALIGHTS'\n\t\tWHEN 4 THEN 'HELICOPTERS'\n\t\tWHEN 5 THEN 'DRONES/UAV'\n\t\tWHEN 6 THEN 'OTHERS'\n\tEND AS \"ddb:cat\",\n\tddb_model AS \"ddb:model\",\n  check_model_type AS \"model:ok\"\nFROM\n    sender_ddb_openaip\nWHERE\n\tddb_is_notrack = False\n\tAND ddb_is_noident = False\n  AND ddb_registration IN ($sel_registration)\nORDER BY sender_name",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Panel Title",
+      "type": "table"
+    }
+  ],
+  "refresh": "",
+  "revision": 1,
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": [],
+  "templating": {
+    "list": [
+      {
+        "current": {},
+        "datasource": {
+          "type": "postgres",
+          "uid": "${DS_TIMESCALEDB}"
+        },
+        "definition": "SELECT d.registration\nFROM ddb AS d\nINNER JOIN senders AS s ON s.address = d.address\nWHERE d.is_notrack = false AND d.is_noident = false\nORDER BY d.registration",
+        "hide": 0,
+        "includeAll": true,
+        "label": "registration",
+        "multi": true,
+        "name": "sel_registration",
+        "options": [],
+        "query": "SELECT d.registration\nFROM ddb AS d\nINNER JOIN senders AS s ON s.address = d.address\nWHERE d.is_notrack = false AND d.is_noident = false\nORDER BY d.registration",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Senders DDB 2",
+  "uid": "CpdkPBa4z",
+  "version": 10,
+  "weekStart": ""
+}

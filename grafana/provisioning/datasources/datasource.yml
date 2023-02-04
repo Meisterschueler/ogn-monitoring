@@ -1,0 +1,19 @@
+apiVersion: 1
+
+# https://grafana.com/docs/grafana/latest/datasources/postgres/
+datasources:
+  - name: TimescaleDB
+    type: postgres
+    url: timescaledb:5432
+    database: ogn
+    user: grafanareader
+    isDefault: true
+    secureJsonData:
+      password: 'password'
+    jsonData:
+      sslmode: disable
+      maxOpenCons: 0 # eigentlich 'unlimited'
+      maxIdleConns: 2
+      connMaxLifetime: 14400
+      postgresVersion: 1500
+      timescaledb: true

@@ -1,0 +1,459 @@
+{
+    "annotations": {
+      "list": [
+        {
+          "builtIn": 1,
+          "datasource": {
+            "type": "grafana",
+            "uid": "-- Grafana --"
+          },
+          "enable": true,
+          "hide": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "name": "Annotations & Alerts",
+          "target": {
+            "limit": 100,
+            "matchAny": false,
+            "tags": [],
+            "type": "dashboard"
+          },
+          "type": "dashboard"
+        }
+      ]
+    },
+    "editable": true,
+    "fiscalYearStartMonth": 0,
+    "graphTooltip": 0,
+    "id": 5,
+    "links": [],
+    "liveNow": false,
+    "panels": [
+      {
+        "datasource": {
+          "type": "postgres",
+          "uid": "P40AE60E18F02DE32"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "custom": {
+              "align": "auto",
+              "displayMode": "auto",
+              "inspect": false
+            },
+            "mappings": [
+              {
+                "options": {
+                  "0x03": {
+                    "index": 0,
+                    "text": "Classic F6"
+                  },
+                  "0x10": {
+                    "index": 1,
+                    "text": "Minibox / LX7007"
+                  },
+                  "0x11": {
+                    "index": 2,
+                    "text": "Red box"
+                  },
+                  "0x12": {
+                    "index": 3,
+                    "text": "Red box"
+                  },
+                  "0x16": {
+                    "index": 4,
+                    "text": "LX8000 / LX9000"
+                  },
+                  "0x214": {
+                    "index": 6,
+                    "text": "Minimouse"
+                  },
+                  "0x50": {
+                    "index": 5,
+                    "text": "TRX-1500"
+                  },
+                  "CRITICAL": {
+                    "index": 15,
+                    "text": "❌"
+                  },
+                  "ERROR": {
+                    "index": 11,
+                    "text": "❌"
+                  },
+                  "EXPIRED": {
+                    "index": 16,
+                    "text": "💀"
+                  },
+                  "GOOD": {
+                    "index": 12,
+                    "text": "✅"
+                  },
+                  "MAJOR": {
+                    "index": 14,
+                    "text": "❗"
+                  },
+                  "MINOR": {
+                    "index": 13,
+                    "text": "🤔"
+                  },
+                  "NO": {
+                    "index": 10,
+                    "text": "❌"
+                  },
+                  "OK": {
+                    "index": 8,
+                    "text": "✅"
+                  },
+                  "UNKNOWN": {
+                    "index": 9,
+                    "text": "😢"
+                  },
+                  "YES": {
+                    "index": 7,
+                    "text": "✅"
+                  }
+                },
+                "type": "value"
+              }
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "address_type"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 104
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "address"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 87
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "name"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 106
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "visible"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 82
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "trackable"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 88
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "identificable"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 101
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "trackable_match"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 82
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "aircraft_match"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 71
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "address_type_match"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 99
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "ddb"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 109
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "flarm:stealth"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 99
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "flarm:track"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 98
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "ddb:track"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 97
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "expiry_date"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 96
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "warning"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 76
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "ddb:ident"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 79
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "expiry:date"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 97
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "expiry:state"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 96
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "sw:expiry"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 100
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "flarm:address"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 108
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "sw:state"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 75
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 27,
+          "w": 24,
+          "x": 0,
+          "y": 0
+        },
+        "id": 2,
+        "options": {
+          "footer": {
+            "fields": "",
+            "reducer": [
+              "sum"
+            ],
+            "show": false
+          },
+          "showHeader": true,
+          "sortBy": []
+        },
+        "pluginVersion": "9.3.6",
+        "targets": [
+          {
+            "datasource": {
+              "type": "postgres",
+              "uid": "P40AE60E18F02DE32"
+            },
+            "editorMode": "code",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "SELECT\n\ts.name,\n\ts.address AS \"flarm:address\",\n  \n\tCASE WHEN s.is_stealth IS NULL THEN 'UNKNOWN' WHEN s.is_stealth THEN 'NO' ELSE 'YES' END AS \"flarm:stealth\",\n\tCASE WHEN s.is_notrack IS NULL THEN 'UNKNOWN' WHEN s.is_notrack THEN 'NO' ELSE 'YES' END AS \"flarm:track\",\n\tCASE WHEN d.is_notrack IS NULL THEN 'UNKNOWN' WHEN d.is_notrack THEN 'NO' ELSE 'YES' END AS \"ddb:track\",\n\tCASE WHEN d.is_noident IS NULL THEN 'UNKNOWN' WHEN d.is_noident THEN 'NO' ELSE 'YES' END AS \"ddb:ident\",\n\t\n\ts.software_version AS \"flarm:sw\",\n\tto_char(f.expiry_date, 'YYYY-MM-DD') AS \"sw:expiry\",\n\tCASE\n\t\tWHEN f.expiry_date IS NULL THEN ''\n\t\tWHEN f.expiry_date - NOW() >= INTERVAL'1 year' THEN 'GOOD'\n\t\tWHEN f.expiry_date - NOW() > INTERVAL'6 months' THEN 'MINOR'\n\t\tWHEN f.expiry_date - NOW() > INTERVAL'1 month' THEN 'MAJOR'\n\t\tWHEN f.expiry_date - NOW() > INTERVAL'1 day' THEN 'CRITICAL'\n\t\tELSE 'EXPIRED'\n\tEND AS \"sw:state\",\n\t'0x' || s.hardware_version AS \"flarm:hw\"\nFROM senders AS s\nINNER JOIN ddb AS d ON s.address = d.address\nLEFT JOIN flarm_expiry AS f ON f.version = s.software_version\nWHERE\n\ts.is_notrack = FALSE AND d.is_notrack = False\n\tAND d.is_noident = False\nORDER BY s.name\n",
+            "refId": "A",
+            "sql": {
+              "columns": [
+                {
+                  "parameters": [],
+                  "type": "function"
+                }
+              ],
+              "groupBy": [
+                {
+                  "property": {
+                    "type": "string"
+                  },
+                  "type": "groupBy"
+                }
+              ],
+              "limit": 50
+            }
+          }
+        ],
+        "title": "Panel Title",
+        "type": "table"
+      }
+    ],
+    "schemaVersion": 37,
+    "style": "dark",
+    "tags": [],
+    "templating": {
+      "list": []
+    },
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    },
+    "timepicker": {},
+    "timezone": "",
+    "title": "Senders Visibility",
+    "uid": "7ba6Yq14k",
+    "version": 11,
+    "weekStart": ""
+  }

@@ -1,0 +1,253 @@
+{
+  "__inputs": [
+    {
+      "name": "DS_TIMESCALEDB",
+      "label": "TimescaleDB",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "postgres",
+      "pluginName": "PostgreSQL"
+    }
+  ],
+  "__elements": {},
+  "__requires": [
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "9.4.3"
+    },
+    {
+      "type": "datasource",
+      "id": "postgres",
+      "name": "PostgreSQL",
+      "version": "1.0.0"
+    },
+    {
+      "type": "panel",
+      "id": "table",
+      "name": "Table",
+      "version": ""
+    }
+  ],
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "target": {
+          "limit": 100,
+          "matchAny": false,
+          "tags": [],
+          "type": "dashboard"
+        },
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "${DS_TIMESCALEDB}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [
+            {
+              "options": {
+                "BLIND": {
+                  "index": 4,
+                  "text": "❌"
+                },
+                "GOOD": {
+                  "index": 2,
+                  "text": "✅"
+                },
+                "OFFLINE": {
+                  "index": 1,
+                  "text": "❌"
+                },
+                "ONLINE": {
+                  "index": 0,
+                  "text": "✅"
+                },
+                "WARNING": {
+                  "index": 3,
+                  "text": "😢"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 22,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "footer": {
+          "countRows": false,
+          "enablePagination": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": []
+      },
+      "pluginVersion": "9.4.3",
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "${DS_TIMESCALEDB}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT iso2_to_emoji(TRIM(r.iso2)) AS flag,\nr.name,\nCASE NOW() - r.last_position < INTERVAL'10 minutes'\n  WHEN TRUE THEN 'ONLINE'\n  ELSE 'OFFLINE'\nEND AS online,\nCASE\n  WHEN rs.ts IS NULL THEN 'BLIND'\n  WHEN NOW() - rs.ts < INTERVAL'1 day' THEN 'GOOD'\n  WHEN NOW() - rs.ts BETWEEN INTERVAL'1day' AND INTERVAL'3 day' THEN 'WARNING'\n  ELSE 'BLIND'\nEND AS sighted,\nCASE\n  WHEN rs.distance IS NULL THEN 'BLIND'\n  WHEN rs.distance < 10000 THEN 'WARNING'\n  ELSE 'GOOD'\nEND AS range,\nCASE\n  WHEN rs.normalized_quality IS NULL THEN 'BLIND'\n  WHEN rs.normalized_quality < 10 THEN 'WARNING'\n  ELSE 'GOOD'\nEND AS quality\n\nFROM receivers AS r\nLEFT JOIN\n(\n  SELECT\n    rs1d.receiver,\n\tMAX(rs1d.ts) AS ts,\n    MAX(rs1d.normalized_quality) AS normalized_quality,\n    MAX(rs1d.distance) AS distance\n  FROM ranking_statistics_1h AS rs1d\n  WHERE NOW() - rs1d.ts < INTERVAL'3 day' AND rs1d.distance IS NOT NULL\n  GROUP BY rs1d.receiver\n) AS rs ON rs.receiver = r.name\nWHERE r.iso2 IN ($sel_country) AND r.name IN ($sel_receiver) \nORDER BY r.iso2, r.name",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [
+                  {
+                    "name": "iso2",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              },
+              {
+                "parameters": [
+                  {
+                    "name": "name",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          },
+          "table": "receivers"
+        }
+      ],
+      "title": "Panel Title",
+      "type": "table"
+    }
+  ],
+  "refresh": "",
+  "revision": 1,
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": [],
+  "templating": {
+    "list": [
+      {
+        "allValue": "",
+        "current": {},
+        "datasource": {
+          "type": "postgres",
+          "uid": "${DS_TIMESCALEDB}"
+        },
+        "definition": "SELECT DISTINCT TRIM(iso2)\nFROM receivers\nWHERE iso2 IS NOT NULL",
+        "hide": 0,
+        "includeAll": true,
+        "label": "country",
+        "multi": true,
+        "name": "sel_country",
+        "options": [],
+        "query": "SELECT DISTINCT TRIM(iso2)\nFROM receivers\nWHERE iso2 IS NOT NULL",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {},
+        "datasource": {
+          "type": "postgres",
+          "uid": "${DS_TIMESCALEDB}"
+        },
+        "definition": "SELECT name\nFROM receivers\nORDER BY name",
+        "hide": 0,
+        "includeAll": true,
+        "label": "receiver",
+        "multi": true,
+        "name": "sel_receiver",
+        "options": [],
+        "query": "SELECT name\nFROM receivers\nORDER BY name",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Receivers2",
+  "uid": "kH5Na2-4k",
+  "version": 3,
+  "weekStart": ""
+}
