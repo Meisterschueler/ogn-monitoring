@@ -132,6 +132,7 @@ services:
       - 3000:3000
     environment:
       GF_INSTALL_PLUGINS: grafana-worldmap-panel,pr0ps-trackmap-panel
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
       # GF_SERVER_ROOT_URL: https://localhost/grafana
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning
