@@ -108,7 +108,12 @@ SELECT
 		WHEN fe.expiry_date - NOW() > INTERVAL'2 months' THEN 'WARNING'
 		WHEN fe.expiry_date - NOW() > INTERVAL'1 day' THEN 'DANGER'
 		ELSE 'EXPIRED'
-	END AS check_flarm_expiry_date
+	END AS check_flarm_expiry_date,
+	CASE
+		WHEN dr.registration IS NULL OR w.registration IS NULL THEN ''
+		WHEN dr.registration IS NOT NULL AND w.registration IS NOT NULL and dr.registration = w.registration THEN 'OK'
+		ELSE 'ERROR'
+	END AS check_weglide_registration
 FROM senders AS s
 LEFT JOIN ddb_registration AS dr ON s.address = dr.address
 LEFT JOIN flarm_hardware AS fh ON s.hardware_version = fh.id
@@ -116,6 +121,7 @@ LEFT JOIN flarm_expiry AS fe ON s.software_version = fe.version
 LEFT JOIN icao24bit AS i ON
 	s.address BETWEEN lower_limit AND upper_limit
 	AND (s.name LIKE 'ICA%' OR s.name LIKE 'PAW%')
+LEFT JOIN weglide AS w ON s.address = w.address
 CROSS JOIN LATERAL (
 	SELECT *
 	FROM openaip

@@ -92,3 +92,21 @@ CREATE TABLE IF NOT EXISTS icao24bit_import (
 	lower_limit	TEXT,
 	upper_limit	TEXT
 );
+
+CREATE TABLE IF NOT EXISTS weglide_import (
+	address	TEXT,
+	registration	TEXT,
+	cn	TEXT,
+	model	TEXT,
+	until	TEXT,
+	pilot	TEXT
+);
+
+CREATE TABLE IF NOT EXISTS weglide (
+	address	INTEGER,
+	registration	TEXT,
+	CN	TEXT,
+	model	TEXT,
+	until	TIMESTAMPTZ,
+	pilot	TEXT
+);

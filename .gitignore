@@ -1,3 +1,4 @@
+.env
 venv
 grafana/grafana-storage
 .env

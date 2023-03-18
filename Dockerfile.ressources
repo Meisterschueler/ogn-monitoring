@@ -3,4 +3,5 @@ FROM postgres:alpine
 WORKDIR /scripts
 
 COPY ./scripts ./
-RUN chmod +x *.sh
+RUN apk add jq && \
+    chmod +x *.sh
