@@ -1,18 +1,31 @@
 -- join the ddb with registrations - because "IS SIMILAR TO regex" is quite expensive
 -- a refresh should be done only if ddb or registration is changed
-CREATE MATERIALIZED VIEW ddb_registration
+CREATE MATERIALIZED VIEW ddb_joined
 AS
 SELECT
-	d.*,
-	r.*,
-	SUM(CASE WHEN registration != '' THEN 1 ELSE 0 END) OVER (PARTITION BY registration) AS double_registration,
-	SUM(CASE WHEN registration != '' THEN 1 ELSE 0 END) OVER (PARTITION BY registration, address_type) AS double_registration_address_type,
-	SUM(CASE WHEN registration != '' THEN 1 ELSE 0 END) OVER (PARTITION BY registration, cn, model) AS double_registration_cn_model
+	d.address AS ddb_address,
+	d.address_type AS ddb_address_type,
+	d.model AS ddb_model,
+	d.model_type AS ddb_model_type,
+	d.registration AS ddb_registration,
+	d.cn AS ddb_cn,
+	d.is_notrack AS ddb_is_notrack,
+	d.is_noident AS ddb_is_noident,
+	r.iso2 AS registration_iso2,
+	r.regex AS registration_regex,
+	r.description AS registration_description,
+	r.aircraft_types AS registration_aircraft_types,
+
+	SUM(CASE WHEN d.registration != '' THEN 1 ELSE 0 END) OVER (PARTITION BY d.registration) AS double_registration,
+	SUM(CASE WHEN d.registration != '' THEN 1 ELSE 0 END) OVER (PARTITION BY d.registration, d.address_type) AS double_registration_address_type,
+	SUM(CASE WHEN d.registration != '' THEN 1 ELSE 0 END) OVER (PARTITION BY d.registration, d.cn, d.model) AS double_registration_cn_model
 FROM ddb AS d
 LEFT JOIN registrations AS r ON d.registration SIMILAR TO r.regex;
+CREATE INDEX idx_ddb_joined_address ON ddb_joined (ddb_address);
+
 
 -- create sender view with ALL relevant informations
-CREATE MATERIALIZED VIEW sender_ddb_openaip
+CREATE MATERIALIZED VIEW senders_joined
 AS
 SELECT
 	s.name AS sender_name,
@@ -28,78 +41,75 @@ SELECT
 	s.software_version AS sender_software_version,
 	s.hardware_version AS sender_hardware_version,
 	s.original_address AS sender_original_address,
-	dr.address AS ddb_address,
-	dr.address_type AS ddb_address_type,
-	dr.model AS ddb_model,
-	dr.model_type AS ddb_model_type,
-	dr.registration AS ddb_registration,
-	dr.cn AS ddb_cn,
-	dr.is_notrack AS ddb_is_notrack,
-	dr.is_noident AS ddb_is_noident,
-	dr.iso2 AS registration_iso2,
-	dr.regex AS registration_regex,
-	dr.description AS registration_description,
-	dr.aircraft_types AS registration_aircraft_types,
+	dj.*,
 	fh.manufacturer AS flarm_hardware_manufacturer,
 	fh.model AS flarm_hardware_model,
 	fe.expiry_date AS flarm_expiry_date,
-	i.iso2 AS icao24bit_iso2,
-	i.lower_limit AS icao24bit_lower_limit,
-	i.upper_limit AS icao24bit_upper_limit,
 	a.name AS airport_name,
 	a.code AS airport_code,
 	a.iso2 AS airport_iso2,
 	a.location AS airport_location,
 	a.altitude AS airport_altitude,
 	a.style AS airport_style,
+	o.registration AS opensky_registration,
+	o.manufacturer AS opensky_manufacturer,
+	o.model AS opensky_model,
+	w.registration AS weglide_registration,
+	w.cn AS weglide_cn,
+	w.model AS weglide_model,
+	w.until AS weglide_until,
+	w.pilot AS weglide_pilot,
+	i.iso2 AS icao24bit_iso2,
+	i.lower_limit AS icao24bit_lower_limit,
+	i.upper_limit AS icao24bit_upper_limit,
 	CASE 
-        WHEN s.aircraft_type IS NULL OR dr.aircraft_types IS NULL THEN ''
-        WHEN s.aircraft_type = ANY(dr.aircraft_types) THEN 'OK'
-        WHEN 0 = ALL(dr.aircraft_types) THEN 'GENERIC'
+        WHEN s.aircraft_type IS NULL OR dj.registration_aircraft_types IS NULL THEN ''
+        WHEN s.aircraft_type = ANY(dj.registration_aircraft_types) THEN 'OK'
+        WHEN 0 = ALL(dj.registration_aircraft_types) THEN 'GENERIC'
         ELSE 'ERROR'
     END AS check_registration_aircraft_types,
 	CASE
 		WHEN double_registration IS NULL THEN ''
 		WHEN double_registration = 0 THEN ''
 		WHEN double_registration = 1 THEN 'OK'
-		WHEN double_registration = double_registration_cn_model AND double_registration_address_type = 1 THEN 'WARNING'
+		WHEN double_registration = dj.double_registration_cn_model AND dj.double_registration_address_type = 1 THEN 'WARNING'
 		ELSE 'ERROR'
 	END AS check_registration_double,
 	CASE
 		WHEN 
 			(s.name LIKE 'ICA%' OR s.name LIKE 'PAW%')
+			AND dj.registration_iso2 IS NOT NULL
 			AND i.iso2 IS NOT NULL
-			AND dr.iso2 IS NOT NULL
-			AND i.iso2 != dr.iso2
+			AND dj.registration_iso2 != i.iso2
 		THEN 'ERROR'
 		WHEN 
 			(s.name LIKE 'ICA%' OR s.name LIKE 'PAW%')
+			AND dj.registration_iso2 IS NOT NULL
 			AND i.iso2 IS NOT NULL
-			AND dr.iso2 IS NOT NULL
-			AND i.iso2 = dr.iso2
+			AND dj.registration_iso2 = i.iso2
 		THEN 'OK'
 		ELSE ''
 	END AS check_iso2,
 	CASE
-		WHEN dr.model = '' OR dr.model IS NULL THEN ''
-		WHEN s.aircraft_type = 1 AND dr.model_type = 1 THEN 'OK'			-- (moto-)glider -> Gliders/motoGliders
-		WHEN s.aircraft_type = 2 AND dr.model_type IN (1,2,3) THEN 'OK'		-- tow plane -> Gliders/motoGliders, Planes or Ultralight
-		WHEN s.aircraft_type = 3 AND dr.model_type = 4 THEN 'OK'			-- helicopter -> Helicopter
-		WHEN s.aircraft_type = 6 AND dr.model_type = 6 AND dr.model = 'HangGlider' THEN 'OK'  -- hang-glider -> Others::HangGlider
-		WHEN s.aircraft_type = 7 AND dr.model_type = 6 AND dr.model = 'Paraglider' THEN 'OK'  -- para-glider -> Others::Paraglider
-		WHEN s.aircraft_type = 8 AND dr.model_type IN (2,3) THEN 'OK'		-- powered aircraft -> Planes or Ultralight
-		WHEN s.aircraft_type = 9 AND dr.model_type = 2 THEN 'OK'			-- jet aircraft -> Planes
-		WHEN s.aircraft_type = 10 AND dr.model_type = 6 AND dr.model = 'UFO' THEN 'OK'		-- UFO -> Others::UFO
-		WHEN s.aircraft_type = 11 AND dr.model_type = 6 AND dr.model = 'Balloon' THEN 'OK'	-- Balloon -> Others::Balloon
-		WHEN s.aircraft_type = 13 AND dr.model_type = 5 THEN 'OK'			-- UAV -> Drones/UAV
-		WHEN s.aircraft_type = 14 AND dr.model_type = 6 AND dr.model = 'Ground Station' THEN 'OK'	-- ground support -> Others::Ground Station
-		WHEN s.aircraft_type = 15 AND dr.model_type = 6 AND dr.model = 'Ground Station' THEN 'OK'	-- static object -> Others::Ground Station
+		WHEN dj.ddb_model_type IS NULL OR dj.ddb_model IS NULL THEN ''
+		WHEN s.aircraft_type = 1 AND dj.ddb_model_type = 1 THEN 'OK'			-- (moto-)glider -> Gliders/motoGliders
+		WHEN s.aircraft_type = 2 AND dj.ddb_model_type IN (1,2,3) THEN 'OK'		-- tow plane -> Gliders/motoGliders, Planes or Ultralight
+		WHEN s.aircraft_type = 3 AND dj.ddb_model_type = 4 THEN 'OK'			-- helicopter -> Helicopter
+		WHEN s.aircraft_type = 6 AND dj.ddb_model_type = 6 AND dj.ddb_model = 'HangGlider' THEN 'OK'  -- hang-glider -> Others::HangGlider
+		WHEN s.aircraft_type = 7 AND dj.ddb_model_type = 6 AND dj.ddb_model = 'Paraglider' THEN 'OK'  -- para-glider -> Others::Paraglider
+		WHEN s.aircraft_type = 8 AND dj.ddb_model_type IN (2,3) THEN 'OK'		-- powered aircraft -> Planes or Ultralight
+		WHEN s.aircraft_type = 9 AND dj.ddb_model_type = 2 THEN 'OK'			-- jet aircraft -> Planes
+		WHEN s.aircraft_type = 10 AND dj.ddb_model_type = 6 AND dj.ddb_model = 'UFO' THEN 'OK'		-- UFO -> Others::UFO
+		WHEN s.aircraft_type = 11 AND dj.ddb_model_type = 6 AND dj.ddb_model = 'Balloon' THEN 'OK'	-- Balloon -> Others::Balloon
+		WHEN s.aircraft_type = 13 AND dj.ddb_model_type = 5 THEN 'OK'			-- UAV -> Drones/UAV
+		WHEN s.aircraft_type = 14 AND dj.ddb_model_type = 6 AND dj.ddb_model = 'Ground Station' THEN 'OK'	-- ground support -> Others::Ground Station
+		WHEN s.aircraft_type = 15 AND dj.ddb_model_type = 6 AND dj.ddb_model = 'Ground Station' THEN 'OK'	-- static object -> Others::Ground Station
 		WHEN s.aircraft_type IS NULL THEN 'UNKNOWN'
 		ELSE 'ERROR'
 	END AS check_model_type,
 	CASE
-        WHEN s.address_type IS NULL OR dr.address_type IS NULL THEN 'UNKNOWN'
-        WHEN s.address_type != dr.address_type THEN 'ERROR'
+        WHEN s.address_type IS NULL OR dj.ddb_address_type IS NULL THEN 'UNKNOWN'
+        WHEN s.address_type != dj.ddb_address_type THEN 'ERROR'
         ELSE 'OK'
     END AS check_address_type,
 	CASE
@@ -110,22 +120,26 @@ SELECT
 		ELSE 'EXPIRED'
 	END AS check_flarm_expiry_date,
 	CASE
-		WHEN dr.registration IS NULL OR w.registration IS NULL THEN ''
-		WHEN dr.registration IS NOT NULL AND w.registration IS NOT NULL and dr.registration = w.registration THEN 'OK'
+		WHEN dj.ddb_registration IS NULL OR dj.ddb_registration = '' OR o.registration IS NULL OR o.registration = '' THEN ''
+		WHEN dj.ddb_registration IS NOT NULL AND o.registration IS NOT NULL AND dj.ddb_registration = o.registration THEN 'OK'
+		ELSE 'ERROR'
+	END AS check_opensky_registration,
+	CASE
+		WHEN dj.ddb_registration IS NULL OR w.registration IS NULL THEN ''
+		WHEN dj.ddb_registration IS NOT NULL AND w.registration IS NOT NULL AND dj.ddb_registration = w.registration THEN 'OK'
 		ELSE 'ERROR'
 	END AS check_weglide_registration
 FROM senders AS s
-LEFT JOIN ddb_registration AS dr ON s.address = dr.address
+LEFT JOIN ddb_joined AS dj ON s.address = dj.ddb_address
 LEFT JOIN flarm_hardware AS fh ON s.hardware_version = fh.id
 LEFT JOIN flarm_expiry AS fe ON s.software_version = fe.version
-LEFT JOIN icao24bit AS i ON
-	s.address BETWEEN lower_limit AND upper_limit
-	AND (s.name LIKE 'ICA%' OR s.name LIKE 'PAW%')
+LEFT JOIN opensky AS o ON s.address = o.address
 LEFT JOIN weglide AS w ON s.address = w.address
+LEFT JOIN icao24bit AS i ON s.address BETWEEN lower_limit AND upper_limit
 CROSS JOIN LATERAL (
 	SELECT *
 	FROM openaip
 	ORDER BY openaip.location <-> s.location
 	LIMIT 1
 ) AS a;
-CREATE INDEX idx_sender_ddb_openaip_airport_iso2_airport_name ON sender_ddb_openaip (airport_iso2, airport_name);
+CREATE INDEX idx_senders_joined_airport_iso2_airport_name ON senders_joined (airport_iso2, airport_name);
