@@ -147,6 +147,7 @@ services:
     depends_on:
       - timescaledb
       - grafana
+    restart: unless-stopped
     ports:
       - 80:80
       - 443:443
