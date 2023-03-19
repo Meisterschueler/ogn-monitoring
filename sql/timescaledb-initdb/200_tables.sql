@@ -67,6 +67,7 @@ CREATE TABLE IF NOT EXISTS positions (
     -- additional (externally calculated) field, for PostGIS only
     location            GEOMETRY(POINT, 4326)
 );
+CREATE INDEX idx_positions_src_call ON positions (src_call, ts);
 
 CREATE TABLE IF NOT EXISTS statuses (
     "ts"                TIMESTAMPTZ NOT NULL,
@@ -109,6 +110,7 @@ CREATE TABLE IF NOT EXISTS statuses (
     -- additional (externally calculated) fields
     receiver_ts         TIMESTAMPTZ
 );
+CREATE INDEX idx_statuses_src_call ON statuses (src_call, ts);
 
 CREATE TABLE IF NOT EXISTS receivers (
     id                  INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,

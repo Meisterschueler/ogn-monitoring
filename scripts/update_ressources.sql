@@ -21,6 +21,7 @@ SELECT
 FROM icao24bit_import
 WHERE iso2 != 'NULL'
 ORDER BY lower_limit;
+CREATE INDEX idx_icao24bit_lower_limit_upper_limit ON icao24bit(lower_limit, upper_limit);
 
 CREATE TEMPORARY TABLE registrations_import (
 	iso2			TEXT NOT NULL,
