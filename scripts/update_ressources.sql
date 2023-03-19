@@ -1,8 +1,8 @@
 TRUNCATE flarm_expiry;
-\copy flarm_expiry FROM './flarm_expiry.csv' WITH (FORMAT CSV, HEADER TRUE, QUOTE '"');
+\copy flarm_expiry FROM '/ressources/flarm_expiry.csv' WITH (FORMAT CSV, HEADER TRUE, QUOTE '"');
 
 TRUNCATE flarm_hardware;
-\copy flarm_hardware FROM './flarm_hardware.csv' WITH (FORMAT CSV, HEADER TRUE, QUOTE '"');
+\copy flarm_hardware FROM '/ressources/flarm_hardware.csv' WITH (FORMAT CSV, HEADER TRUE, QUOTE '"');
 
 CREATE TEMPORARY TABLE icao24bit_import (
 	iso2	TEXT,
@@ -10,7 +10,7 @@ CREATE TEMPORARY TABLE icao24bit_import (
 	lower_limit	TEXT,
 	upper_limit	TEXT
 );
-\copy icao24bit_import FROM './iso2_icao24bit.csv' WITH (FORMAT CSV, HEADER TRUE, QUOTE '"');
+\copy icao24bit_import FROM '/ressources/iso2_icao24bit.csv' WITH (FORMAT CSV, HEADER TRUE, QUOTE '"');
 
 TRUNCATE icao24bit;
 INSERT INTO icao24bit
@@ -21,7 +21,6 @@ SELECT
 FROM icao24bit_import
 WHERE iso2 != 'NULL'
 ORDER BY lower_limit;
-CREATE INDEX idx_icao24bit_lower_limit_upper_limit ON icao24bit(lower_limit, upper_limit);
 
 CREATE TEMPORARY TABLE registrations_import (
 	iso2			TEXT NOT NULL,
@@ -44,7 +43,7 @@ CREATE TEMPORARY TABLE registrations_import (
 	ground_support	SMALLINT,
 	static_object	SMALLINT
 );
-\copy registrations_import FROM './iso2_registration_regex.csv' WITH (FORMAT CSV, HEADER TRUE, QUOTE '"');
+\copy registrations_import FROM '/ressources/iso2_registration_regex.csv' WITH (FORMAT CSV, HEADER TRUE, QUOTE '"');
 
 TRUNCATE registrations;
 INSERT INTO registrations(iso2, regex, description, aircraft_types)
@@ -57,4 +56,4 @@ FROM registrations_import
 GROUP BY iso2, regex, description
 ORDER BY iso2, regex;
 
-REFRESH MATERIALIZED VIEW ddb_registration;
+REFRESH MATERIALIZED VIEW ddb_joined;

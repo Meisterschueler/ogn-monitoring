@@ -9,23 +9,23 @@ CREATE TEMPORARY TABLE ddb_import (
 	AIRCRAFT_TYPE	TEXT
 );
 
-\copy ddb_import FROM './ddb.csv' WITH (FORMAT CSV, HEADER TRUE, QUOTE '''');
+\copy ddb_import FROM '/ressources/ddb.csv' WITH (FORMAT CSV, HEADER TRUE, QUOTE '''');
 
 TRUNCATE ddb;
 INSERT INTO ddb (address,address_type,model,model_type,registration,cn,is_notrack,is_noident)
 SELECT
-	('x' || lpad(di.device_id, 8, '0'))::bit(32)::int AS address,
-	CASE di.device_type
+	('x' || lpad(DEVICE_ID, 8, '0'))::bit(32)::int AS address,
+	CASE DEVICE_TYPE
 		WHEN 'I' THEN 1
 		WHEN 'F' THEN 2
 		WHEN 'O' THEN 3
 	END AS address_type,
-	di.aircraft_model AS model,
-	CAST(di.aircraft_type AS SMALLINT) AS model_type,
-	di.registration,
-	di.cn,
-	di.tracked = 'N' AS is_notrack,
-	di.identified = 'N' AS is_noident
+	AIRCRAFT_MODEL AS model,
+	CAST(AIRCRAFT_TYPE AS SMALLINT) AS model_type,
+	REGISTRATION AS registration,
+	CN AS cn,
+	TRACKED = 'N' AS is_notrack,
+	IDENTIFIED = 'N' AS is_noident
 FROM ddb_import AS di;
 
-REFRESH MATERIALIZED VIEW ddb_registration;
+REFRESH MATERIALIZED VIEW ddb_joined;

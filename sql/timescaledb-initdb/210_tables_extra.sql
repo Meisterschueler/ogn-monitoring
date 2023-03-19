@@ -10,16 +10,23 @@ CREATE TABLE IF NOT EXISTS ddb (
 	is_noident		BOOLEAN NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS flarm_expiry (
+    version         DOUBLE PRECISION NOT NULL UNIQUE,
+    expiry_date     DATE NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS flarm_hardware (
     id              TEXT NOT NULL UNIQUE,
     manufacturer    TEXT NOT NULL,
     model           TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS flarm_expiry (
-    version         DOUBLE PRECISION NOT NULL UNIQUE,
-    expiry_date     DATE NOT NULL
+CREATE TABLE IF NOT EXISTS icao24bit (
+	iso2	VARCHAR(2),
+	lower_limit	INTEGER,
+	upper_limit	INTEGER
 );
+CREATE INDEX idx_icao24bit_lower_limit_upper_limit ON icao24bit(lower_limit, upper_limit);
 
 CREATE TABLE IF NOT EXISTS registrations (
 	iso2			VARCHAR(2) NOT NULL,

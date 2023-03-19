@@ -12,7 +12,7 @@ CREATE TEMPORARY TABLE openaip_import (
 	freq	TEXT,
 	"desc"	TEXT
 );
-\copy openaip_import FROM './openaip.csv' WITH (FORMAT CSV, HEADER TRUE, QUOTE '"');
+\copy openaip_import FROM '/ressources/openaip.csv' WITH (FORMAT CSV, HEADER TRUE, QUOTE '"');
 
 TRUNCATE openaip;
 INSERT INTO openaip (name, code, iso2, location, altitude, style)

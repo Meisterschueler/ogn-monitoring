@@ -6,7 +6,7 @@ CREATE TEMPORARY TABLE weglide_import (
 	until		TEXT,
 	pilot		TEXT
 );
-\copy weglide_import FROM './weglide.csv' WITH (FORMAT CSV, HEADER FALSE, QUOTE '''');
+\copy weglide_import FROM '/ressources/weglide.csv' WITH (FORMAT CSV, HEADER FALSE, QUOTE '''');
 
 TRUNCATE weglide;
 INSERT INTO weglide (address,registration,cn,model,until,pilot)

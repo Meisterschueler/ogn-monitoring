@@ -1,5 +1,4 @@
-DROP TABLE opensky_import;
-CREATE TABLE opensky_import (
+CREATE TEMPORARY TABLE opensky_import (
 	icao24	TEXT,
 	registration	TEXT,
 	manufacturericao	TEXT,
@@ -28,7 +27,7 @@ CREATE TABLE opensky_import (
 	notes		TEXT,
 	categoryDescription	TEXT
 );
-\copy opensky_import FROM './opensky_aircraft_database.csv' WITH (FORMAT CSV, HEADER TRUE, QUOTE '"');
+\copy opensky_import FROM '/ressources/opensky_aircraft_database.csv' WITH (FORMAT CSV, HEADER TRUE, QUOTE '"');
 
 INSERT INTO opensky (address, registration, manufacturer, model)
 SELECT
@@ -36,4 +35,5 @@ SELECT
 	registration,
 	manufacturername AS manufacturer,
 	model
-FROM opensky_import;
+FROM opensky_import
+ORDER BY address;
