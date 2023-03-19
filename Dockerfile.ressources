@@ -1,7 +1,14 @@
 # Postgres and crond installed - available for linux/amd64 and linux/arm64
 FROM postgres:alpine
+RUN apk add postgis && \
+    apk add python3 && \
+    apk add py3-pip && \
+    apk add jq && \
+    pip install google-cloud-storage && \
+    pip install psycopg2-binary && \
+    pip install csvkit
+
 WORKDIR /scripts
 
 COPY ./scripts ./
-RUN apk add jq && \
-    chmod +x *.sh
+RUN chmod +x *.sh *.py

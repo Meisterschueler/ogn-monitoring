@@ -1,4 +1,11 @@
-TRUNCATE weglide_import;
+CREATE TEMPORARY TABLE weglide_import (
+	address		TEXT,
+	registration	TEXT,
+	cn			TEXT,
+	model		TEXT,
+	until		TEXT,
+	pilot		TEXT
+);
 \copy weglide_import FROM './weglide.csv' WITH (FORMAT CSV, HEADER FALSE, QUOTE '''');
 
 TRUNCATE weglide;

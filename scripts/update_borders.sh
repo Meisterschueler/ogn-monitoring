@@ -12,5 +12,4 @@ shp2pgsql -d -s 4326 -I -D ne_10m_admin_0_countries.shp countries > countries.sq
 echo Writing sql to database
 psql postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@timescaledb:5432/${POSTGRES_DB} -f countries.sql
 
-echo Finished!
-while true; do sleep 60; echo "sleeping"; done
+echo Finished country import

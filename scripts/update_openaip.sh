@@ -9,5 +9,4 @@ awk 'FNR == 1 && NR != 1 {next} /^,*$/ {next} !seen[$0]++ ' *.cup > openaip.csv
 echo Write csv to database
 psql postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@timescaledb:5432/${POSTGRES_DB} -f update_openaip.sql
 
-echo Finished!
-while true; do sleep 60; echo "sleeping"; done
+echo Finished OpenAIP import

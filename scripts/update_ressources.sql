@@ -4,7 +4,12 @@ TRUNCATE flarm_expiry;
 TRUNCATE flarm_hardware;
 \copy flarm_hardware FROM './flarm_hardware.csv' WITH (FORMAT CSV, HEADER TRUE, QUOTE '"');
 
-TRUNCATE icao24bit_import;
+CREATE TEMPORARY TABLE icao24bit_import (
+	iso2	TEXT,
+	country	TEXT,
+	lower_limit	TEXT,
+	upper_limit	TEXT
+);
 \copy icao24bit_import FROM './iso2_icao24bit.csv' WITH (FORMAT CSV, HEADER TRUE, QUOTE '"');
 
 TRUNCATE icao24bit;
@@ -17,7 +22,27 @@ FROM icao24bit_import
 WHERE iso2 != 'NULL'
 ORDER BY lower_limit;
 
-TRUNCATE registrations_import;
+CREATE TEMPORARY TABLE registrations_import (
+	iso2			TEXT NOT NULL,
+	regex			TEXT NOT NULL,
+	description		TEXT,
+	unknown			SMALLINT,
+	glider			SMALLINT,
+	tow_plane		SMALLINT,
+	helicopter		SMALLINT,
+	parachute		SMALLINT,
+	drop_plane		SMALLINT,
+	hang_glider		SMALLINT,
+	para_glider		SMALLINT,
+	powered_aircraft	SMALLINT,
+	jet_aircraft	SMALLINT,
+	ufo				SMALLINT,
+	balloon			SMALLINT,
+	airship			SMALLINT,
+	uav				SMALLINT,
+	ground_support	SMALLINT,
+	static_object	SMALLINT
+);
 \copy registrations_import FROM './iso2_registration_regex.csv' WITH (FORMAT CSV, HEADER TRUE, QUOTE '"');
 
 TRUNCATE registrations;

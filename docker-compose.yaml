@@ -41,21 +41,6 @@ services:
     command: ogn-client --target postgre-sql --database-url postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@timescaledb:5432/${POSTGRES_DB}
     networks:
       - monitoring
-
-  countries:
-    image: countries
-    container_name: countries
-    depends_on:
-      timescaledb:
-        condition: service_healthy
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-    command: sh ./update_borders.sh
-    networks:
-      - monitoring
   
   ressources:
     image: ressources
@@ -68,22 +53,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-    command: ./cron_ressources.sh
-    networks:
-      - monitoring
-
-  openaip:
-    image: openaip
-    container_name: openaip
-    depends_on:
-      timescaledb:
-        condition: service_healthy
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-    command: sh ./update_openaip.sh
+    command: ./entrypoint_cron.sh
     networks:
       - monitoring
 

@@ -1,7 +1,0 @@
-# Postgres and crond installed - available for linux/amd64 and linux/arm64
-FROM alpine:latest
-RUN apk add postgis
-WORKDIR /scripts
-
-COPY ./scripts ./
-RUN chmod +x *.sh

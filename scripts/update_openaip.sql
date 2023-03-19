@@ -1,5 +1,17 @@
--- import DDB into 'import' table ... mind the '\' before copy since we do not execute on server but locally
-TRUNCATE openaip_import;
+CREATE TEMPORARY TABLE openaip_import (
+	name	TEXT,
+	code	TEXT,
+	country	TEXT,
+	lat		TEXT,
+	lon		TEXT,
+	elev	TEXT,
+	style	TEXT,
+	rwdir	TEXT,
+	rwlen	TEXT,
+	rwwidth	TEXT,
+	freq	TEXT,
+	"desc"	TEXT
+);
 \copy openaip_import FROM './openaip.csv' WITH (FORMAT CSV, HEADER TRUE, QUOTE '"');
 
 TRUNCATE openaip;

@@ -1,9 +1,0 @@
-# Postgres and crond installed - available for linux/amd64 and linux/arm64
-FROM postgres:alpine
-RUN apk add py3-pip && \
-    pip install google-cloud-storage
-
-WORKDIR /scripts
-
-COPY ./scripts ./
-RUN chmod +x *.sh *.py
