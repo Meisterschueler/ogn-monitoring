@@ -15,11 +15,11 @@ SELECT
 		ELSE CAST(((CAST(bearing AS INTEGER) + 15 - course + 360) % 360) / 30 AS INTEGER) * 30
 	END AS relative_bearing,
 
-	COUNT(*) FILTER (WHERE (error IS NOT NULL OR error = 0) AND bearing IS NOT NULL AND course IS NOT NULL AND speed >= 5) AS points_active,
-	COUNT(*) FILTER (WHERE error IS NOT NULL or error = 0) AS points_good,
+	COUNT(*) FILTER (WHERE (error IS NULL OR error <= 5) AND bearing IS NOT NULL AND course IS NOT NULL AND speed >= 5) AS points_active,
+	COUNT(*) FILTER (WHERE error IS NULL or error <= 5) AS points_good,
 	COUNT(*) AS points_total,
-	MAX(normalized_quality) FILTER (WHERE (error IS NOT NULL OR error = 0) AND bearing IS NOT NULL AND course IS NOT NULL AND speed >= 5) AS normalized_quality,
-	MAX(distance) FILTER (WHERE error IS NOT NULL OR error = 0) AS distance
+	MAX(normalized_quality) FILTER (WHERE (error IS NULL OR error <= 5) AND bearing IS NOT NULL AND course IS NOT NULL AND speed >= 5) AS normalized_quality,
+	MAX(distance) FILTER (WHERE (error IS NULL OR error <= 5) AND bearing IS NOT NULL AND course IS NOT NULL AND speed >= 5) AS distance
 FROM
 	positions
 WHERE
