@@ -13,22 +13,11 @@ CREATE TEMPORARY TABLE opensky_import (
 	operatoricao	TEXT,
 	operatoriata	TEXT,
 	owner		TEXT,
-	testreg		TEXT,
-	registered	TEXT,
-	reguntil	TEXT,
-	status		TEXT,
-	built		TEXT,
-	firstflightdate	TEXT,
-	seatconfiguration	TEXT,
-	engines		TEXT,
-	modes		TEXT,
-	adsb		TEXT,
-	acars		TEXT,
-	notes		TEXT,
-	categoryDescription	TEXT
+	testreg		TEXT
 );
-\copy opensky_import FROM '/ressources/opensky_aircraft_database.csv' WITH (FORMAT CSV, HEADER TRUE, QUOTE '"');
+\copy opensky_import FROM '/ressources/opensky_aircraft_database.csv' WITH (FORMAT CSV, HEADER TRUE, QUOTE '"', ENCODING 'windows-1251');
 
+TRUNCATE opensky;
 INSERT INTO opensky (address, registration, manufacturer, model)
 SELECT
 	('x' || lpad(icao24, 8, '0'))::bit(32)::int AS address,

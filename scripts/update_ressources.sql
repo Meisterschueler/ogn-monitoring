@@ -19,7 +19,7 @@ SELECT
 	('x' || lpad(lower_limit, 8, '0'))::bit(32)::int,
 	('x' || lpad(upper_limit, 8, '0'))::bit(32)::int
 FROM icao24bit_import
-WHERE iso2 != 'NULL'
+WHERE iso2 != ''
 ORDER BY lower_limit;
 
 CREATE TEMPORARY TABLE registrations_import (

@@ -143,3 +143,32 @@ CROSS JOIN LATERAL (
 	LIMIT 1
 ) AS a;
 CREATE INDEX idx_senders_joined_airport_iso2_airport_name ON senders_joined (airport_iso2, airport_name);
+
+CREATE MATERIALIZED VIEW registration_joined
+AS
+SELECT
+  'DDB' AS "source",
+  dj.ddb_address AS "address",
+  dj.ddb_registration AS "registration",
+  dj.ddb_model AS "model"
+FROM ddb_joined AS dj
+
+UNION
+
+SELECT
+  'OpenSky' AS "source",
+  o.address AS "address",
+  o.registration AS "registration",
+  o.model AS "model"
+FROM opensky AS o
+
+UNION
+
+SELECT
+  'WeGlide' AS "source",
+  w.address AS "address",
+  w.registration AS "registration",
+  w.model AS "model"
+FROM weglide AS w;
+CREATE INDEX ON registration_joined(address, registration);
+CREATE INDEX ON registration_joined(registration, address);
