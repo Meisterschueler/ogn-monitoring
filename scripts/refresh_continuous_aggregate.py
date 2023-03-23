@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import os
 from datetime import datetime, timedelta
 import psycopg2
@@ -22,7 +24,7 @@ def refresh(start, end):
 
     start = datetime.strptime(start, '%Y-%m-%d')
     end = datetime.strptime(end, '%Y-%m-%d')
-    
+
     refresh_materialized_view(cur, 'statistics_5m', start, end, timedelta(hours=1))
     refresh_materialized_view(cur, 'ranking_statistics_1h', start, end, timedelta(days=1))
     refresh_materialized_view(cur, 'ranking_statistics_1d', start, end, timedelta(days=1))
