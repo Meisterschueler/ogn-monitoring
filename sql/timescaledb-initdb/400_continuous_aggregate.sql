@@ -6,20 +6,21 @@ SELECT
 	time_bucket('5 minutes', ts) AS ts,
 	src_call,
 	receiver,
-	CASE (error IS NOT NULL OR error = 0) AND bearing IS NOT NULL AND course IS NOT NULL AND speed >= 5
+	CASE COALESCE(error, 0) <= 5 AND bearing IS NOT NULL AND course IS NOT NULL AND speed >= 5
 		WHEN FALSE THEN NULL
 		ELSE CAST(((CAST(bearing AS INTEGER) + 15 + 180) % 360) / 30 AS INTEGER) * 30
 	END AS radial,
-	CASE (error IS NOT NULL OR error = 0) AND bearing IS NOT NULL AND course IS NOT NULL AND speed >= 5
+	CASE COALESCE(error, 0) <= 5 AND bearing IS NOT NULL AND course IS NOT NULL AND speed >= 5
 		WHEN FALSE THEN NULL
 		ELSE CAST(((CAST(bearing AS INTEGER) + 15 - course + 360) % 360) / 30 AS INTEGER) * 30
 	END AS relative_bearing,
 
-	COUNT(*) FILTER (WHERE (error IS NULL OR error <= 5) AND bearing IS NOT NULL AND course IS NOT NULL AND speed >= 5) AS points_active,
-	COUNT(*) FILTER (WHERE error IS NULL or error <= 5) AS points_good,
+	COUNT(*) FILTER (WHERE COALESCE(error, 0) <= 5 AND bearing IS NOT NULL AND course IS NOT NULL AND speed >= 5) AS points_active,
+	COUNT(*) FILTER (WHERE COALESCE(error, 0) <= 5) AS points_good,
+	COUNT(*) FILTER (WHERE COALESCE(error, 0) <= 5 AND (COALESCE(normalized_quality, 0) >= 50 OR COALESCE(distance, 0) >= 640000)) AS points_fake,
 	COUNT(*) AS points_total,
-	MAX(normalized_quality) FILTER (WHERE (error IS NULL OR error <= 5) AND bearing IS NOT NULL AND course IS NOT NULL AND speed >= 5) AS normalized_quality,
-	MAX(distance) FILTER (WHERE (error IS NULL OR error <= 5) AND bearing IS NOT NULL AND course IS NOT NULL AND speed >= 5) AS distance
+	MAX(normalized_quality) FILTER (WHERE COALESCE(error, 0) <= 5) AS normalized_quality,
+	MAX(distance) FILTER (WHERE COALESCE(error, 0) <= 5) AS distance
 FROM
 	positions
 WHERE
@@ -40,6 +41,7 @@ SELECT
 
 	SUM(points_active) AS points_active,
 	SUM(points_good) AS points_good,
+	SUM(points_fake) AS points_fake,
 	SUM(points_total) AS points_total,
 	MAX(normalized_quality) AS normalized_quality,
 	MAX(distance) AS distance
@@ -52,15 +54,16 @@ CREATE MATERIALIZED VIEW ranking_statistics_1d
 WITH (timescaledb.continuous, timescaledb.materialized_only = TRUE)
 AS
 SELECT
-        time_bucket('1 day', ts) AS ts,
-        src_call,
-        receiver,
+	time_bucket('1 day', ts) AS ts,
+	src_call,
+	receiver,
 
-        SUM(points_active) AS points_active,
-        SUM(points_good) AS points_good,
-        SUM(points_total) AS points_total,
-        MAX(normalized_quality) AS normalized_quality,
-        MAX(distance) AS distance
+	SUM(points_active) AS points_active,
+	SUM(points_good) AS points_good,
+	SUM(points_fake) AS points_fake,
+	SUM(points_total) AS points_total,
+	MAX(normalized_quality) AS normalized_quality,
+	MAX(distance) AS distance
 
 FROM ranking_statistics_1h AS rs1h
 GROUP BY time_bucket('1 day', ts), src_call, receiver
@@ -79,6 +82,7 @@ SELECT
 
 	SUM(points_active) AS points_active,
 	SUM(points_good) AS points_good,
+	SUM(points_fake) AS points_fake,
 	SUM(points_total) AS points_total,
 	MAX(normalized_quality) AS normalized_quality,
 	MAX(distance) AS distance
@@ -99,6 +103,7 @@ SELECT
 
         SUM(points_active) AS points_active,
         SUM(points_good) AS points_good,
+		SUM(points_fake) AS points_fake,
         SUM(points_total) AS points_total,
         MAX(normalized_quality) AS normalized_quality,
         MAX(distance) AS distance
