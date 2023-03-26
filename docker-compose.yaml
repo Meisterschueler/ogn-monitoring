@@ -2,8 +2,6 @@ version: '3'
 
 services:
   timescaledb:
-    # image: timescaledev/timescaledb-ha:pg15-ts2.9-multi
-    # image: k4black/timescaledb-postgis:latest-pg13
     image: xbgmsharp/timescaledb-postgis:latest
     container_name: timescaledb
     restart: unless-stopped
@@ -16,15 +14,12 @@ services:
     volumes:
       - ./sql/timescaledb-initdb:/docker-entrypoint-initdb.d
       - ${DOCKERVOLUMES}/timescaledb:/var/lib/postgresql/data
-#      - ./data/ogn_logfiles:/mnt/ogn_logfiles
-#      - /Volumes/Datenhalde/timescaledb:/var/lib/postgresql/data
-#      - /Volumes/LaCieBlack/OGNDATA:/mnt/ogn_logfiles
     healthcheck:
       test: ["CMD-SHELL", "pg_isready"]
       interval: 5s
       timeout: 5s
       retries: 12
-    command:  # we need these commands for pg_stat_statements
+    command:
       - -cshared_preload_libraries=timescaledb,pg_stat_statements,pg_cron
       - -ccron.database_name=${POSTGRES_DB}
       - -cpg_stat_statements.track=all
@@ -37,8 +32,12 @@ services:
     depends_on:
       timescaledb:
         condition: service_healthy
+    volumes:
+      - ${DOCKERVOLUMES}/ogn-logfiles:/ogn-logfiles
     restart: unless-stopped
     command: ogn-client --target postgre-sql --database-url postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@timescaledb:5432/${POSTGRES_DB}
+    #restart: "no"
+    #command: ["sh", "-c", "gzip -c -d /ogn-logfiles/stdout.log-20230325.gz | ogn-client --source stdin --target postgre-sql --database-url postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@timescaledb:5432/${POSTGRES_DB}"]
     networks:
       - monitoring
   
