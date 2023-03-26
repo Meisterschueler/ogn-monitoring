@@ -25,11 +25,11 @@ def refresh(start, end):
     start = datetime.strptime(start, '%Y-%m-%d')
     end = datetime.strptime(end, '%Y-%m-%d')
 
-    refresh_materialized_view(cur, 'statistics_5m', start, end, timedelta(hours=1))
+    refresh_materialized_view(cur, 'positions_5m', start, end, timedelta(hours=1))
+    refresh_materialized_view(cur, 'ranking_statistics_5m', start, end, timedelta(hours=1))
     refresh_materialized_view(cur, 'ranking_statistics_1h', start, end, timedelta(days=1))
     refresh_materialized_view(cur, 'ranking_statistics_1d', start, end, timedelta(days=1))
-    refresh_materialized_view(cur, 'quality_statistics_1h', start, end, timedelta(days=1))
-    refresh_materialized_view(cur, 'quality_statistics_1d', start, end, timedelta(days=1))
+    refresh_materialized_view(cur, 'direction_statistics_1d', start, end, timedelta(days=1))
 
 if __name__ == '__main__':
     refresh('2023-03-01', '2023-03-22')

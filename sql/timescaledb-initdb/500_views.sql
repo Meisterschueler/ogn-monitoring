@@ -5,11 +5,17 @@ SELECT
 	time_bucket('1 day', rs1h.ts) AS ts,
 	src_call,
 
-	SUM(rs1h.points_active) AS points_active,
-	SUM(rs1h.points_good) AS points_good,
-	SUM(rs1h.points_total) AS points_total,
-	MAX(rs1h.normalized_quality) AS normalized_quality,
-	MAX(rs1h.distance) AS distance,
+	FIRST(first_position, ts) AS first_position,
+	LAST(last_position, ts) AS last_position,
+	MAX(normalized_quality) AS normalized_quality,
+	MAX(distance) AS distance,
+	MIN(altitude_min) AS altitude_min,
+	MAX(altitude_max) AS altitude_max,
+
+	SUM(points_motion) AS points_motion,
+	SUM(points_good) AS points_good,
+	SUM(points_fake) AS points_fake,
+	SUM(points_total) AS points_total
 
 	AVG(rs1h.normalized_quality - sq.avg_quality) AS relative_quality,
 
@@ -33,11 +39,17 @@ SELECT
 	time_bucket('1 day', rs1h.ts) AS ts,
 	receiver,
 
-	SUM(rs1h.points_active) AS points_active,
-	SUM(rs1h.points_good) AS points_good,
-	SUM(rs1h.points_total) AS points_total,
-	MAX(rs1h.normalized_quality) AS normalized_quality,
-	MAX(rs1h.distance) AS distance,
+	FIRST(first_position, ts) AS first_position,
+	LAST(last_position, ts) AS last_position,
+	MAX(normalized_quality) AS normalized_quality,
+	MAX(distance) AS distance,
+	MIN(altitude_min) AS altitude_min,
+	MAX(altitude_max) AS altitude_max,
+
+	SUM(points_motion) AS points_motion,
+	SUM(points_good) AS points_good,
+	SUM(points_fake) AS points_fake,
+	SUM(points_total) AS points_total
 
 	AVG(rs1h.normalized_quality - sq.avg_quality) AS relative_quality,
 
