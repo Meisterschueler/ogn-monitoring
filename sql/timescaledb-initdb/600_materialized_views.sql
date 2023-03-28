@@ -51,6 +51,16 @@ SELECT
 	a.location AS airport_location,
 	a.altitude AS airport_altitude,
 	a.style AS airport_style,
+	CASE
+		WHEN s.location IS NOT NULL AND a.location IS NOT NULL AND ST_Distance(s.location, a.location) < 5
+		THEN
+			ST_Distance(
+				ST_TRANSFORM(s.location, 3857),
+				ST_TRANSFORM(a.location, 3857)
+			)
+		ELSE NULL
+	END as airport_distance,
+	degrees(ST_Azimuth(s.location, a.location)) AS airport_radial,
 	o.registration AS opensky_registration,
 	o.manufacturer AS opensky_manufacturer,
 	o.model AS opensky_model,
