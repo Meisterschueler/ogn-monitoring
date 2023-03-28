@@ -28,3 +28,32 @@ BEGIN
 END;
 
 $$ LANGUAGE plpgsql;
+
+
+
+CREATE OR REPLACE FUNCTION ST_CardinalDirection(azimuth float8)
+RETURNS CHARACTER VARYING
+AS $$
+
+SELECT
+	CASE
+		WHEN azimuth < 11.25 THEN 'N'
+		WHEN azimuth < 33.75 THEN 'NNE'
+		WHEN azimuth < 56.25 THEN 'NE'
+		WHEN azimuth < 78.75 THEN 'ENE'
+		WHEN azimuth < 101.25 THEN 'E'
+		WHEN azimuth < 123.75 THEN 'ESE'
+		WHEN azimuth < 146.25 THEN 'SE'
+		WHEN azimuth < 168.75 THEN 'SSE'
+		WHEN azimuth < 191.25 THEN 'S'
+		WHEN azimuth < 213.75 THEN 'SSW'
+		WHEN azimuth < 236.25 THEN 'SW'
+		WHEN azimuth < 258.75 THEN 'WSW'
+		WHEN azimuth < 281.25 THEN 'W'
+		WHEN azimuth < 303.75 THEN 'WNW'
+		WHEN azimuth < 326.25 THEN 'NW'
+		WHEN azimuth < 348.75 THEN 'NNW'
+		ELSE 'N'
+	END;
+
+$$ LANGUAGE sql;
