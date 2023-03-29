@@ -73,6 +73,11 @@ SELECT
 	i.lower_limit AS icao24bit_lower_limit,
 	i.upper_limit AS icao24bit_upper_limit,
 	CASE
+		WHEN dj.registration_iso2 IS NOT NULL THEN dj.registration_iso2
+		WHEN i.iso2 IS NOT NULL THEN i.iso2
+		ELSE ''
+	END AS iso2,
+	CASE
 		WHEN COALESCE(dj.ddb_registration, '') != '' THEN dj.ddb_registration
 		WHEN COALESCE(o.registration, '') != '' THEN o.registration || ' (opensky)'
 		WHEN COALESCE(w.registration, '') != '' THEN w.registration || ' (weglide)'

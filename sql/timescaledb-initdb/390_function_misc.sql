@@ -6,8 +6,11 @@ DECLARE
   flag_emoji TEXT;
 BEGIN
   SELECT INTO flag_emoji
-    CHR(ASCII(SUBSTRING(iso2, 1, 1)) + CAST(x'1f1a5' AS INT))
-    || CHR(ASCII(SUBSTRING(iso2, 2, 1)) + CAST(x'1f1a5' AS INT));
+    CASE
+		WHEN iso2 != '' THEN CHR(ASCII(SUBSTRING(iso2, 1, 1)) + CAST(x'1f1a5' AS INT))
+    		|| CHR(ASCII(SUBSTRING(iso2, 2, 1)) + CAST(x'1f1a5' AS INT))
+		ELSE ''
+	END;
   RETURN flag_emoji;
 END;
 
