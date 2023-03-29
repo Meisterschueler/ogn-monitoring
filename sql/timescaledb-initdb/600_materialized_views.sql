@@ -72,6 +72,18 @@ SELECT
 	i.iso2 AS icao24bit_iso2,
 	i.lower_limit AS icao24bit_lower_limit,
 	i.upper_limit AS icao24bit_upper_limit,
+	CASE
+		WHEN COALESCE(dj.ddb_registration, '') != '' THEN dj.ddb_registration
+		WHEN COALESCE(o.registration, '') != '' THEN o.registration || ' (opensky)'
+		WHEN COALESCE(w.registration, '') != '' THEN w.registration || ' (weglide)'
+		ELSE ''
+	END AS registration,
+	CASE
+		WHEN COALESCE(dj.ddb_model, '') != '' THEN dj.ddb_model
+		WHEN COALESCE(o.model, '') != '' THEN o.model || ' (opensky)'
+		WHEN COALESCE(w.model, '') != '' THEN w.model || ' (weglide)'
+		ELSE ''
+	END AS model,
 	CASE 
         WHEN s.aircraft_type IS NULL OR dj.registration_aircraft_types IS NULL THEN ''
         WHEN s.aircraft_type = ANY(dj.registration_aircraft_types) THEN 'OK'
