@@ -7,11 +7,11 @@ SELECT
 	src_call,
 	receiver,
 	
-	CASE state = 3
+	CASE state = 'MOTION'
 		WHEN FALSE THEN NULL
 		ELSE CAST(((CAST(bearing AS INTEGER) + 15 + 180) % 360) / 30 AS INTEGER) * 30
 	END AS radial,
-	CASE state = 3
+	CASE state = 'MOTION'
 		WHEN FALSE THEN NULL
 		ELSE CAST(((CAST(bearing AS INTEGER) + 15 - course + 360) % 360) / 30 AS INTEGER) * 30
 	END AS relative_bearing,
@@ -19,10 +19,11 @@ SELECT
 	FIRST(ts, ts) AS first_position,
 	LAST(ts, ts) AS last_position,
 	MAX(normalized_quality) FILTER (WHERE state IN ('MOTION', 'STATIC')) AS normalized_quality,
-	MAX(distance) FILTER (WHERE state IN ('MOTION', 'STATIC')) AS distance,
-	MIN(altitude) FILTER (WHERE state IN ('MOTION', 'STATIC') AND altitude IS NOT NULL) AS altitude_min,
-	MAX(altitude) FILTER (WHERE state IN ('MOTION', 'STATIC') AND altitude IS NOT NULL) AS altitude_max,
+	MAX(distance) FILTER (WHERE state IN ('DYNAMIC', 'MOTION', 'STATIC')) AS distance,
+	MIN(altitude) FILTER (WHERE state IN ('DYNAMIC', 'MOTION', 'STATIC') AND altitude IS NOT NULL) AS altitude_min,
+	MAX(altitude) FILTER (WHERE state IN ('DYNAMIC', 'MOTION', 'STATIC') AND altitude IS NOT NULL) AS altitude_max,
 	
+	COUNT(*) FILTER (WHERE state = 'DYNAMIC') AS points_dynamic,
 	COUNT(*) FILTER (WHERE state = 'MOTION') AS points_motion,
 	COUNT(*) FILTER (WHERE state = 'STATIC') AS points_static,
 	COUNT(*) FILTER (WHERE state = 'FAKE') AS points_fake,
@@ -32,7 +33,8 @@ FROM (
 	SELECT
 		*,
 		CASE
-			WHEN COALESCE(error, 0) <= 5 AND COALESCE(normalized_quality, 0) <= 50 AND COALESCE(distance, 0) <= 640000 AND bearing IS NOT NULL AND course IS NOT NULL AND COALESCE(speed, 0) >= 5 THEN 'MOTION'
+			WHEN COALESCE(error, 0) <= 5 AND COALESCE(normalized_quality, 0) <= 50 AND COALESCE(distance, 0) <= 640000 AND bearing IS NOT NULL AND course IS NOT NULL AND COALESCE(speed, 0) >= 5 AND (ABS(COALESCE(climb_rate, 0)) >= 2000 OR ABS(COALESCE(turn_rate, 0)) * speed >= 30) THEN 'DYNAMIC'
+			WHEN COALESCE(error, 0) <= 5 AND COALESCE(normalized_quality, 0) <= 50 AND COALESCE(distance, 0) <= 640000 AND bearing IS NOT NULL AND course IS NOT NULL AND COALESCE(speed, 0) >= 5 AND ABS(COALESCE(climb_rate, 0)) < 2000 AND ABS(COALESCE(turn_rate, 0)) * speed < 30 THEN 'MOTION'
 			WHEN COALESCE(error, 0) <= 5 AND COALESCE(normalized_quality, 0) <= 50 AND COALESCE(distance, 0) <= 640000 AND (bearing IS NULL OR course IS NULL OR COALESCE(speed, 0) < 5) THEN 'STATIC'
 			WHEN COALESCE(error, 0) <= 5 AND (COALESCE(normalized_quality, 0) > 50 OR COALESCE(distance, 0) > 640000) THEN 'FAKE'
 			WHEN COALESCE(error, 0) > 5 THEN 'ERROR'
@@ -63,6 +65,7 @@ SELECT
 	MIN(altitude_min) AS altitude_min,
 	MAX(altitude_max) AS altitude_max,
 
+	SUM(points_dynamic) AS points_dynamic,
 	SUM(points_motion) AS points_motion,
 	SUM(points_static) AS points_static,
 	SUM(points_fake) AS points_fake,
@@ -88,6 +91,7 @@ SELECT
 	MIN(altitude_min) AS altitude_min,
 	MAX(altitude_max) AS altitude_max,
 
+	SUM(points_dynamic) AS points_dynamic,
 	SUM(points_motion) AS points_motion,
 	SUM(points_static) AS points_static,
 	SUM(points_fake) AS points_fake,
@@ -113,6 +117,7 @@ SELECT
 	MIN(altitude_min) AS altitude_min,
 	MAX(altitude_max) AS altitude_max,
 
+	SUM(points_dynamic) AS points_dynamic,
 	SUM(points_motion) AS points_motion,
 	SUM(points_static) AS points_static,
 	SUM(points_fake) AS points_fake,
@@ -121,6 +126,29 @@ SELECT
 
 FROM ranking_statistics_1h AS rs1h
 GROUP BY time_bucket('1 day', ts), src_call, receiver
+WITH NO DATA;
+
+CREATE MATERIALIZED VIEW quality_statistics_1d
+WITH (timescaledb.continuous)
+AS
+SELECT
+	time_bucket('1 day', ts) AS ts,	
+	receiver,
+
+	AVG(normalized_quality) AS normalized_quality,
+	COUNT(DISTINCT src_call) AS senders_count,
+	percentile_disc(0.1) WITHIN GROUP (order by normalized_quality) AS percentile_10,
+	percentile_disc(0.2) WITHIN GROUP (order by normalized_quality) AS percentile_20,
+	percentile_disc(0.3) WITHIN GROUP (order by normalized_quality) AS percentile_30,
+	percentile_disc(0.4) WITHIN GROUP (order by normalized_quality) AS percentile_40,
+	percentile_disc(0.5) WITHIN GROUP (order by normalized_quality) AS percentile_50,
+	percentile_disc(0.6) WITHIN GROUP (order by normalized_quality) AS percentile_60,
+	percentile_disc(0.7) WITHIN GROUP (order by normalized_quality) AS percentile_70,
+	percentile_disc(0.8) WITHIN GROUP (order by normalized_quality) AS percentile_80,
+	percentile_disc(0.9) WITHIN GROUP (order by normalized_quality) AS percentile_90
+FROM ranking_statistics_1d
+WHERE normalized_quality IS NOT NULL AND points_motion > 10
+GROUP BY time_bucket('1 day', ts), receiver
 WITH NO DATA;
 
 -- direction statistics 1d
@@ -141,6 +169,7 @@ SELECT
 	MIN(altitude_min) AS altitude_min,
 	MAX(altitude_max) AS altitude_max,
 
+	SUM(points_dynamic) AS points_dynamic,
 	SUM(points_motion) AS points_motion,
 	SUM(points_static) AS points_static,
 	SUM(points_fake) AS points_fake,

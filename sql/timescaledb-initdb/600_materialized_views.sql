@@ -187,7 +187,39 @@ SELECT
   o.address AS "address",
   o.registration AS "registration",
   o.model AS "model"
-FROM opensky AS o
+FROM opensky AS o;
+
+CREATE MATERIALIZED VIEW senders_relative_qualities
+AS
+SELECT
+	time_bucket('1 day', rs.ts) AS ts,
+	rs.src_call,
+	
+	AVG(rs.normalized_quality - sq.normalized_quality) AS relative_quality,
+	SUM(CASE WHEN rs.normalized_quality < sq.percentile_10 THEN 1 ELSE 0 END) AS reporting_below_10,
+	COUNT(*) AS total
+FROM ranking_statistics_1d AS rs
+INNER JOIN (
+	SELECT
+		time_bucket('1 day', ts) AS ts,	
+		receiver,
+
+		AVG(normalized_quality) AS normalized_quality,
+		COUNT(DISTINCT src_call) AS senders_count,
+		percentile_disc(0.1) WITHIN GROUP (order by normalized_quality) AS percentile_10,
+		percentile_disc(0.2) WITHIN GROUP (order by normalized_quality) AS percentile_20,
+		percentile_disc(0.3) WITHIN GROUP (order by normalized_quality) AS percentile_30,
+		percentile_disc(0.4) WITHIN GROUP (order by normalized_quality) AS percentile_40,
+		percentile_disc(0.5) WITHIN GROUP (order by normalized_quality) AS percentile_50,
+		percentile_disc(0.6) WITHIN GROUP (order by normalized_quality) AS percentile_60,
+		percentile_disc(0.7) WITHIN GROUP (order by normalized_quality) AS percentile_70,
+		percentile_disc(0.8) WITHIN GROUP (order by normalized_quality) AS percentile_80,
+		percentile_disc(0.9) WITHIN GROUP (order by normalized_quality) AS percentile_90
+	FROM ranking_statistics_1d
+	WHERE normalized_quality IS NOT NULL AND points_motion > 10
+	GROUP BY time_bucket('1 day', ts), receiver
+) AS sq ON sq.ts = rs.ts AND sq.receiver = rs.receiver
+GROUP BY time_bucket('1 day', rs.ts), rs.src_call
 
 UNION
 
@@ -199,3 +231,36 @@ SELECT
 FROM weglide AS w;
 CREATE INDEX ON registration_joined(address, registration);
 CREATE INDEX ON registration_joined(registration, address);
+
+-- Create normalized sender qualities
+CREATE MATERIALIZED VIEW senders_relative_qualities
+AS
+SELECT
+	time_bucket('1 day', rs.ts) AS ts,
+	rs.src_call,
+	
+	AVG(rs.normalized_quality - sq.normalized_quality) AS relative_quality,
+	SUM(CASE WHEN rs.normalized_quality < sq.percentile_10 THEN 1 ELSE 0 END) AS reporting_below_10,
+	COUNT(*) AS total
+FROM ranking_statistics_1d AS rs
+INNER JOIN (
+	SELECT
+		time_bucket('1 day', ts) AS ts,	
+		receiver,
+
+		AVG(normalized_quality) AS normalized_quality,
+		COUNT(DISTINCT src_call) AS senders_count,
+		percentile_disc(0.1) WITHIN GROUP (order by normalized_quality) AS percentile_10,
+		percentile_disc(0.2) WITHIN GROUP (order by normalized_quality) AS percentile_20,
+		percentile_disc(0.3) WITHIN GROUP (order by normalized_quality) AS percentile_30,
+		percentile_disc(0.4) WITHIN GROUP (order by normalized_quality) AS percentile_40,
+		percentile_disc(0.5) WITHIN GROUP (order by normalized_quality) AS percentile_50,
+		percentile_disc(0.6) WITHIN GROUP (order by normalized_quality) AS percentile_60,
+		percentile_disc(0.7) WITHIN GROUP (order by normalized_quality) AS percentile_70,
+		percentile_disc(0.8) WITHIN GROUP (order by normalized_quality) AS percentile_80,
+		percentile_disc(0.9) WITHIN GROUP (order by normalized_quality) AS percentile_90
+	FROM ranking_statistics_1d
+	WHERE normalized_quality IS NOT NULL AND points_motion > 10
+	GROUP BY time_bucket('1 day', ts), receiver
+) AS sq ON sq.ts = rs.ts AND sq.receiver = rs.receiver
+GROUP BY time_bucket('1 day', rs.ts), rs.src_call

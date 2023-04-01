@@ -18,6 +18,11 @@ SELECT add_continuous_aggregate_policy('ranking_statistics_1d',
   end_offset => INTERVAL '1 day',
   schedule_interval => INTERVAL '1 day');
 
+SELECT add_continuous_aggregate_policy('quality_statistics_1d',
+  start_offset => NULL,
+  end_offset => INTERVAL '1 day',
+  schedule_interval => INTERVAL '1 day');
+
 SELECT add_continuous_aggregate_policy('direction_statistics_1d',
   start_offset => NULL,
   end_offset => INTERVAL '1 day',
