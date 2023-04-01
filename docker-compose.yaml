@@ -106,6 +106,7 @@ services:
       GF_AUTH_ANONYMOUS_ENABLED: 'True'
       GF_SERVER_DOMAIN: 'localhost'
       GF_DATABASE_URL: 'postgres://grafana:password@timescaledb:5432/grafana'
+      GF_PLUGINS_ENABLE_ALPHA: 'True'
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning
       - ./grafana/dashboards:/var/lib/grafana/dashboards
