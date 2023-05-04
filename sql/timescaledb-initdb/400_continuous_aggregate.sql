@@ -6,42 +6,30 @@ SELECT
 	time_bucket('5 minutes', ts) AS ts,
 	src_call,
 	receiver,
-	
-	CASE state = 'MOTION'
+
+	CASE COALESCE(error, 0) <= 5 AND COALESCE(normalized_quality, 0) <= 50 AND COALESCE(distance, 0) <= 640000 AND bearing IS NOT NULL AND course IS NOT NULL AND COALESCE(speed, 0) >= 5 AND ABS(COALESCE(climb_rate, 0)) < 2000 AND ABS(COALESCE(turn_rate, 0)) * speed < 30
 		WHEN FALSE THEN NULL
 		ELSE CAST(((CAST(bearing AS INTEGER) + 15 + 180) % 360) / 30 AS INTEGER) * 30
 	END AS radial,
-	CASE state = 'MOTION'
+	CASE COALESCE(error, 0) <= 5 AND COALESCE(normalized_quality, 0) <= 50 AND COALESCE(distance, 0) <= 640000 AND bearing IS NOT NULL AND course IS NOT NULL AND COALESCE(speed, 0) >= 5 AND ABS(COALESCE(climb_rate, 0)) < 2000 AND ABS(COALESCE(turn_rate, 0)) * speed < 30
 		WHEN FALSE THEN NULL
 		ELSE CAST(((CAST(bearing AS INTEGER) + 15 - course + 360) % 360) / 30 AS INTEGER) * 30
 	END AS relative_bearing,
-	
+
 	FIRST(ts, ts) AS first_position,
 	LAST(ts, ts) AS last_position,
-	MAX(normalized_quality) FILTER (WHERE state IN ('MOTION', 'STATIC')) AS normalized_quality,
-	MAX(distance) FILTER (WHERE state IN ('DYNAMIC', 'MOTION', 'STATIC')) AS distance,
-	MIN(altitude) FILTER (WHERE state IN ('DYNAMIC', 'MOTION', 'STATIC') AND altitude IS NOT NULL) AS altitude_min,
-	MAX(altitude) FILTER (WHERE state IN ('DYNAMIC', 'MOTION', 'STATIC') AND altitude IS NOT NULL) AS altitude_max,
-	
-	COUNT(*) FILTER (WHERE state = 'DYNAMIC') AS points_dynamic,
-	COUNT(*) FILTER (WHERE state = 'MOTION') AS points_motion,
-	COUNT(*) FILTER (WHERE state = 'STATIC') AS points_static,
-	COUNT(*) FILTER (WHERE state = 'FAKE') AS points_fake,
-	COUNT(*) FILTER (WHERE state = 'ERROR') AS points_error,
+	MAX(normalized_quality) FILTER (WHERE COALESCE(error, 0) <= 5 AND COALESCE(normalized_quality, 0) <= 50 AND COALESCE(distance, 0) <= 640000) AS normalized_quality,
+	MAX(distance) FILTER (WHERE COALESCE(error, 0) <= 5 AND COALESCE(normalized_quality, 0) <= 50 AND COALESCE(distance, 0) <= 640000) AS distance,
+	MIN(altitude) FILTER (WHERE COALESCE(error, 0) <= 5 AND COALESCE(normalized_quality, 0) <= 50 AND COALESCE(distance, 0) <= 640000 AND altitude IS NOT NULL) AS altitude_min,
+	MAX(altitude) FILTER (WHERE COALESCE(error, 0) <= 5 AND COALESCE(normalized_quality, 0) <= 50 AND COALESCE(distance, 0) <= 640000 AND altitude IS NOT NULL) AS altitude_max,
+
+	COUNT(*) FILTER (WHERE COALESCE(error, 0) <= 5 AND COALESCE(normalized_quality, 0) <= 50 AND COALESCE(distance, 0) <= 640000 AND bearing IS NOT NULL AND course IS NOT NULL AND COALESCE(speed, 0) >= 5 AND (ABS(COALESCE(climb_rate, 0)) >= 2000 OR ABS(COALESCE(turn_rate, 0)) * speed >= 30)) AS points_dynamic,
+	COUNT(*) FILTER (WHERE COALESCE(error, 0) <= 5 AND COALESCE(normalized_quality, 0) <= 50 AND COALESCE(distance, 0) <= 640000 AND bearing IS NOT NULL AND course IS NOT NULL AND COALESCE(speed, 0) >= 5 AND ABS(COALESCE(climb_rate, 0)) < 2000 AND ABS(COALESCE(turn_rate, 0)) * speed < 30) AS points_motion,
+	COUNT(*) FILTER (WHERE COALESCE(error, 0) <= 5 AND COALESCE(normalized_quality, 0) <= 50 AND COALESCE(distance, 0) <= 640000 AND (bearing IS NULL OR course IS NULL OR COALESCE(speed, 0) < 5)) AS points_static,
+	COUNT(*) FILTER (WHERE COALESCE(error, 0) <= 5 AND (COALESCE(normalized_quality, 0) > 50 OR COALESCE(distance, 0) > 640000)) AS points_fake,
+	COUNT(*) FILTER (WHERE COALESCE(error, 0) > 5) AS points_error,
 	COUNT(*) AS points_total
-FROM (
-	SELECT
-		*,
-		CASE
-			WHEN COALESCE(error, 0) <= 5 AND COALESCE(normalized_quality, 0) <= 50 AND COALESCE(distance, 0) <= 640000 AND bearing IS NOT NULL AND course IS NOT NULL AND COALESCE(speed, 0) >= 5 AND (ABS(COALESCE(climb_rate, 0)) >= 2000 OR ABS(COALESCE(turn_rate, 0)) * speed >= 30) THEN 'DYNAMIC'
-			WHEN COALESCE(error, 0) <= 5 AND COALESCE(normalized_quality, 0) <= 50 AND COALESCE(distance, 0) <= 640000 AND bearing IS NOT NULL AND course IS NOT NULL AND COALESCE(speed, 0) >= 5 AND ABS(COALESCE(climb_rate, 0)) < 2000 AND ABS(COALESCE(turn_rate, 0)) * speed < 30 THEN 'MOTION'
-			WHEN COALESCE(error, 0) <= 5 AND COALESCE(normalized_quality, 0) <= 50 AND COALESCE(distance, 0) <= 640000 AND (bearing IS NULL OR course IS NULL OR COALESCE(speed, 0) < 5) THEN 'STATIC'
-			WHEN COALESCE(error, 0) <= 5 AND (COALESCE(normalized_quality, 0) > 50 OR COALESCE(distance, 0) > 640000) THEN 'FAKE'
-			WHEN COALESCE(error, 0) > 5 THEN 'ERROR'
-			ELSE 'UNKNOWN'
-		END AS state
-	FROM positions
-) AS sq
+FROM positions
 WHERE
 	src_call NOT LIKE 'RND%'
 	AND dst_call IN ('APRS', 'OGFLR', 'OGNFNT', 'OGNTRK')

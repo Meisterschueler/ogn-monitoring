@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS positions (
     src_call            CHAR(9) NOT NULL,
     dst_call            CHAR(9) NOT NULL,
     receiver            CHAR(9) NOT NULL,
-	
+
     -- APRS position message
     receiver_time       CHAR(7) NOT NULL,
 	messaging_supported	BOOLEAN,
@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS positions (
     symbol_table        CHAR NOT NULL,
     symbol_code         CHAR NOT NULL,
 	comment				TEXT,
-	
+
     -- parsed APRS position comment
 	additional_lat		SMALLINT,
 	additional_lon		SMALLINT,
@@ -77,11 +77,11 @@ CREATE TABLE IF NOT EXISTS statuses (
     src_call            CHAR(9) NOT NULL,
     dst_call            CHAR(9) NOT NULL,
     receiver            CHAR(9) NOT NULL,
-	
+
 	-- APRS status message
     receiver_time       CHAR(7) NOT NULL,
-	comment				TEXT,
-	
+    comment             TEXT,
+
 	-- parsed APRS status comment
 	version				TEXT,
 	platform			TEXT,
@@ -98,7 +98,7 @@ CREATE TABLE IF NOT EXISTS statuses (
 	senders				SMALLINT,
 	rf_correction_manual	SMALLINT,
 	rf_correction_automatic	DOUBLE PRECISION,
-	signal_quality			DOUBLE PRECISION,
+	noise			DOUBLE PRECISION,
 	senders_signal_quality	DOUBLE PRECISION,
 	senders_messages		INTEGER,
 	good_senders_signal_quality	DOUBLE PRECISION,
@@ -132,7 +132,7 @@ CREATE TABLE IF NOT EXISTS senders (
     id                  INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     name                CHAR(9) NOT NULL UNIQUE,
     last_position       TIMESTAMPTZ,
-    last_status         TIMESTAMPTZ
+    last_status         TIMESTAMPTZ,
 
     location            GEOMETRY(POINT, 4326),
     altitude            DOUBLE PRECISION,
