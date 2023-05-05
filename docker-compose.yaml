@@ -6,6 +6,7 @@ services:
     container_name: timescaledb
     restart: unless-stopped
     environment:
+      PGUSER: ${POSTGRES_USER}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
