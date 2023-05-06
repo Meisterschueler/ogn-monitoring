@@ -1,5 +1,7 @@
 #!/bin/bash
 
+echo --- Started WeGlide import ---
+
 echo Downloading WeGlide
 wget http://api.weglide.org/v1/user/device -O /ressources/weglide.json
 
@@ -24,4 +26,4 @@ FROM weglide_csvkit AS w;
 EOF
 psql postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@timescaledb:5432/${POSTGRES_DB} -c "$sql"
 
-echo Finished WeGlide import
+echo --- Finished WeGlide import ---

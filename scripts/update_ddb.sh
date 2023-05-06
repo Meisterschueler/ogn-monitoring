@@ -1,12 +1,14 @@
 #!/bin/bash
 
-echo Downloading DDB
+echo --- Started DDB import ---
+
+echo Downloading DDB csv file
 wget http://ddb.glidernet.org/download/?t=1 -O /ressources/ddb.csv
 
-echo Write import to database
+echo Write csv file to database into temporary table
 csvsql --db postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@timescaledb:5432/${POSTGRES_DB} --tables ddb_csvkit --insert --overwrite /ressources/ddb.csv
 
-echo Migrate data from import table to final table
+echo Migrate data from temporary table to final table
 read -d '' sql << EOF
     TRUNCATE ddb;
     INSERT INTO ddb (address,address_type,model,model_type,registration,cn,is_notrack,is_noident)
@@ -29,4 +31,4 @@ EOF
 
 psql postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@timescaledb:5432/${POSTGRES_DB} -c "$sql"
 
-echo Finished DDB import
+echo --- Finished DDB import ---
