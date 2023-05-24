@@ -103,7 +103,7 @@ services:
     ports:
       - 3000:3000
     environment:
-      GF_INSTALL_PLUGINS: grafana-worldmap-panel,pr0ps-trackmap-panel
+      GF_INSTALL_PLUGINS: grafana-worldmap-panel,pr0ps-trackmap-panel,nline-plotlyjs-panel
       GF_AUTH_ANONYMOUS_ENABLED: 'True'
       GF_SERVER_DOMAIN: 'localhost'
       GF_DATABASE_URL: 'postgres://grafana:password@timescaledb:5432/grafana'
