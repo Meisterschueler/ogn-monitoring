@@ -60,3 +60,28 @@ SELECT
 	END;
 
 $$ LANGUAGE sql;
+
+
+
+CREATE OR REPLACE FUNCTION update_countries()
+RETURNS INTEGER
+AS $$
+
+DECLARE
+  processed_rows INTEGER;
+BEGIN
+	WITH rows AS (
+	  UPDATE receivers AS r
+		SET iso2 = c.iso_a2_eh
+		FROM countries AS c
+		WHERE ST_Contains(c.geom, r.location)
+		RETURNING 1
+	)
+	
+	SELECT INTO processed_rows
+		COUNT(*)
+	FROM rows;
+	RETURN processed_rows;
+END;
+
+$$ LANGUAGE plpgsql;
