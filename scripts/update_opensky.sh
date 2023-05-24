@@ -8,4 +8,7 @@ wget http://opensky-network.org/datasets/metadata/aircraft-database-complete-202
 echo Write csv to database
 psql postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@timescaledb:5432/${POSTGRES_DB} -f /scripts/update_opensky.sql
 
+echo Refresh materialized view registration_joined
+psql postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@timescaledb:5432/${POSTGRES_DB} -c "REFRESH MATERIALIZED VIEW registration_joined;"
+
 echo --- Finished OpenSky import ---

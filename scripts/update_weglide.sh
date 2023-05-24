@@ -26,4 +26,7 @@ FROM weglide_csvkit AS w;
 EOF
 psql postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@timescaledb:5432/${POSTGRES_DB} -c "$sql"
 
+echo Refresh materialized view registration_joined
+psql postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@timescaledb:5432/${POSTGRES_DB} -c "REFRESH MATERIALIZED VIEW registration_joined;"
+
 echo --- Finished WeGlide import ---
