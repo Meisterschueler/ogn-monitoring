@@ -39,7 +39,7 @@ WITH NO DATA;
 
 -- ranking statistics 5m
 CREATE MATERIALIZED VIEW ranking_statistics_5m
-WITH (timescaledb.continuous)
+WITH (timescaledb.continuous, timescaledb.materialized_only = TRUE)
 AS
 SELECT
 	time_bucket('5 minutes', ts) AS ts,
@@ -65,7 +65,7 @@ GROUP BY time_bucket('5 minutes', ts), src_call, receiver
 WITH NO DATA;
 
 CREATE MATERIALIZED VIEW ranking_statistics_1h
-WITH (timescaledb.continuous)
+WITH (timescaledb.continuous, timescaledb.materialized_only = TRUE)
 AS
 SELECT
 	time_bucket('1 hour', ts) AS ts,
