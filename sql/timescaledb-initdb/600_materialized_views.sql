@@ -232,4 +232,58 @@ INNER JOIN (
 	WHERE normalized_quality IS NOT NULL AND points_motion > 10
 	GROUP BY time_bucket('1 day', ts), receiver
 ) AS sq ON sq.ts = rs.ts AND sq.receiver = rs.receiver
-GROUP BY time_bucket('1 day', rs.ts), rs.src_call
+GROUP BY time_bucket('1 day', rs.ts), rs.src_call;
+
+-- Create receiver view with ALL relevant informations
+CREATE MATERIALIZED VIEW receivers_joined
+AS
+SELECT
+  r.*,
+  ST_X(r.location) AS lng,
+  ST_Y(r.location) AS lat,
+  CASE NOW() - r.last_position < INTERVAL'10 minutes'
+    WHEN TRUE THEN 'ONLINE'
+    ELSE 'OFFLINE'
+  END AS online,
+  CASE
+    WHEN rs.points_fake > 10 THEN 'ERROR'
+    WHEN rs.points_fake > 1 THEN 'WARNING'
+    ELSE 'GOOD'
+  END AS fake,
+  CASE
+    WHEN rs.ts IS NULL THEN 'BLIND'
+    WHEN NOW() - rs.ts < INTERVAL'3 day' THEN 'GOOD'
+    WHEN NOW() - rs.ts BETWEEN INTERVAL'3 day' AND INTERVAL'7 day' THEN 'WARNING'
+    ELSE 'BLIND'
+  END AS sighted,
+  rs.distance AS "range",
+  CASE
+    WHEN rs.distance IS NULL THEN ''
+    WHEN rs.distance < 10000 THEN 'BLIND'
+    WHEN rs.distance < 25000 THEN 'WARNING'
+    ELSE 'GOOD'
+  END AS "range:check",
+  rs.normalized_quality AS "quality",
+  CASE
+    WHEN rs.normalized_quality IS NULL THEN ''
+    WHEN rs.normalized_quality < 10 THEN 'BLIND'
+    WHEN rs.normalized_quality < 15 THEN 'WARNING'
+    ELSE 'GOOD'
+  END AS "quality:check"
+FROM receivers AS r
+LEFT JOIN
+(
+  SELECT
+    rs1h.receiver,
+    MAX(rs1h.ts) AS ts,
+    SUM(rs1h.points_fake) AS points_fake,
+    MAX(rs1h.normalized_quality) FILTER (WHERE rs1h.points_fake = 0) AS normalized_quality,
+    MAX(rs1h.distance) FILTER (WHERE rs1h.points_fake = 0) AS distance
+  FROM ranking_statistics_1d AS rs1h
+  WHERE
+    NOW() - rs1h.ts < INTERVAL'7 days'
+    AND rs1h.distance IS NOT NULL
+  GROUP BY rs1h.receiver
+) AS rs ON rs.receiver = r.name
+ORDER BY r.iso2, r.name;
+
