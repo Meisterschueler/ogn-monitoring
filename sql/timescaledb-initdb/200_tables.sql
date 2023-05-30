@@ -150,7 +150,7 @@ CREATE INDEX idx_senders_location ON senders USING gist (location);
 
 
 -- create hypertables for messages tables
-SELECT create_hypertable('invalids', 'ts', chunk_time_interval => INTERVAL '1 day');
-SELECT create_hypertable('unknowns', 'ts', chunk_time_interval => INTERVAL '1 day');
-SELECT create_hypertable('positions', 'ts', chunk_time_interval => INTERVAL '6 hours');
-SELECT create_hypertable('statuses', 'ts', chunk_time_interval => INTERVAL '1 day');
+SELECT create_hypertable('invalids', 'ts', chunk_time_interval => INTERVAL '10 days');
+SELECT create_hypertable('unknowns', 'ts', chunk_time_interval => INTERVAL '10 days');
+SELECT create_hypertable('positions', 'ts', chunk_time_interval => INTERVAL '1 hour');
+SELECT create_hypertable('statuses', 'ts', chunk_time_interval => INTERVAL '10 days');
