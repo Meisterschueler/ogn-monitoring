@@ -41,6 +41,7 @@ SELECT
 	s.software_version AS sender_software_version,
 	s.hardware_version AS sender_hardware_version,
 	s.original_address AS sender_original_address,
+	s.is_duplicate AS sender_is_duplicate,
 	dj.*,
 	fh.manufacturer AS flarm_hardware_manufacturer,
 	fh.model AS flarm_hardware_model,
@@ -140,6 +141,10 @@ SELECT
         ELSE 'OK'
     END AS check_address_type,
 	CASE
+		WHEN s.is_duplicate THEN 'ERROR'
+		ELSE 'OK'
+	END AS check_duplicate,
+	CASE
 		WHEN fe.expiry_date IS NULL THEN ''
 		WHEN fe.expiry_date - NOW() > INTERVAL'1 year' THEN 'OK'
 		WHEN fe.expiry_date - NOW() > INTERVAL'2 months' THEN 'WARNING'
@@ -156,7 +161,35 @@ SELECT
 		WHEN dj.ddb_registration IS NOT NULL AND w.registration IS NOT NULL AND dj.ddb_registration = w.registration THEN 'OK'
 		ELSE 'ERROR'
 	END AS check_weglide_registration
-FROM senders AS s
+FROM (
+	SELECT
+		*
+	FROM (
+		SELECT
+			LAST_VALUE(name) OVER (PARTITION BY name ORDER BY last_position) AS name,
+			LAST_VALUE(last_position) OVER (PARTITION BY name ORDER BY last_position) AS last_position,
+			LAST_VALUE(last_status) OVER (PARTITION BY name ORDER BY last_position) AS last_status,
+			LAST_VALUE(location) OVER (PARTITION BY name ORDER BY last_position) AS location,
+			LAST_VALUE(altitude) OVER (PARTITION BY name ORDER BY last_position) AS altitude,
+			LAST_VALUE(address_type) OVER (PARTITION BY name ORDER BY last_position) AS address_type,
+			LAST_VALUE(aircraft_type) OVER (PARTITION BY name ORDER BY last_position) AS aircraft_type,
+			LAST_VALUE(is_stealth) OVER (PARTITION BY name ORDER BY last_position) AS is_stealth,
+			LAST_VALUE(is_notrack) OVER (PARTITION BY name ORDER BY last_position) AS is_notrack,
+			LAST_VALUE(address) OVER (PARTITION BY name ORDER BY last_position) AS address,
+			LAST_VALUE(software_version) OVER (PARTITION BY name ORDER BY last_position) AS software_version,
+			LAST_VALUE(hardware_version) OVER (PARTITION BY name ORDER BY last_position) AS hardware_version,
+			
+			LAST_VALUE(original_address) OVER (PARTITION BY name ORDER BY original_address) AS original_address,
+			
+			CASE
+				WHEN COUNT(*) FILTER (WHERE original_address != 0) OVER (PARTITION BY name) > 1 THEN TRUE
+				ELSE FALSE
+			END as is_duplicate,
+			ROW_NUMBER() OVER (PARTITION BY name ORDER BY last_position DESC) AS row
+		FROM senders
+	) AS sq
+	WHERE sq.row = 1
+) AS s
 LEFT JOIN ddb_joined AS dj ON s.address = dj.ddb_address
 LEFT JOIN flarm_hardware AS fh ON s.hardware_version = fh.id
 LEFT JOIN flarm_expiry AS fe ON s.software_version = fe.version

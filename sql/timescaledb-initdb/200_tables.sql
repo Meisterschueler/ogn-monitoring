@@ -129,8 +129,7 @@ CREATE TABLE IF NOT EXISTS receivers (
 CREATE INDEX idx_receivers_location ON receivers USING gist (location);
 
 CREATE TABLE IF NOT EXISTS senders (
-    id                  INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    name                VARCHAR(9) NOT NULL UNIQUE,
+    name                VARCHAR(9),
     last_position       TIMESTAMPTZ,
     last_status         TIMESTAMPTZ,
 
@@ -146,6 +145,7 @@ CREATE TABLE IF NOT EXISTS senders (
     hardware_version    TEXT,
     original_address	INTEGER
 );
+ALTER TABLE senders ADD PRIMARY KEY (name, original_address);
 CREATE INDEX idx_senders_location ON senders USING gist (location);
 
 
