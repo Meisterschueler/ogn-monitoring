@@ -29,19 +29,21 @@ BEGIN
 	)
 
 	-- create/update receivers - last_position and position
-	INSERT INTO receivers AS r (name, last_position, location, altitude)
+	INSERT INTO receivers AS r (name, last_position, location, altitude, messages)
 	SELECT
 		src_call AS name,
 		LAST(ts, ts) AS last_position,
 		LAST(location, ts), 
-		LAST(altitude, ts) AS altitude
+		LAST(altitude, ts) AS altitude,
+		COUNT(*) AS messages
 	FROM unproceeded_receiver_positions
 	GROUP BY src_call
 	ON CONFLICT (name) DO UPDATE
 	SET
 		last_position = EXCLUDED.last_position,
 		location = EXCLUDED.location,
-		altitude = EXCLUDED.altitude;
+		altitude = EXCLUDED.altitude,
+		messages = r.messages + EXCLUDED.messages;
 	
 	GET DIAGNOSTICS processed_position_rows = ROW_COUNT;
 	
@@ -68,19 +70,21 @@ BEGIN
 	)
 
 	-- create/update receivers - last_status and position
-	INSERT INTO receivers AS r (name, last_status, version, platform)
+	INSERT INTO receivers AS r (name, last_status, version, platform, messages)
 	SELECT
 		src_call AS name,
 		LAST(ts, ts) AS last_status,
 		LAST(version, ts) AS version,
-		LAST(platform, ts) AS platform
+		LAST(platform, ts) AS platform,
+		COUNT(*) AS messages
 	FROM unproceeded_receiver_statuses
 	GROUP BY src_call
 	ON CONFLICT (name) DO UPDATE
 	SET
 		last_status = EXCLUDED.last_status,
 		version = EXCLUDED.version,
-		platform = EXCLUDED.platform;
+		platform = EXCLUDED.platform,
+		messages = r.messages + EXCLUDED.messages;
 	
 	GET DIAGNOSTICS processed_statuses_rows = ROW_COUNT;
 	

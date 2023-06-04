@@ -42,6 +42,7 @@ SELECT
 	s.hardware_version AS sender_hardware_version,
 	s.original_address AS sender_original_address,
 	s.is_duplicate AS sender_is_duplicate,
+	s.messages AS sender_messages,
 	dj.*,
 	fh.manufacturer AS flarm_hardware_manufacturer,
 	fh.model AS flarm_hardware_model,
@@ -181,6 +182,7 @@ FROM (
 			
 			LAST_VALUE(original_address) OVER (PARTITION BY name ORDER BY original_address) AS original_address,
 			
+			SUM(messages) OVER (PARTITION BY name) AS messages,
 			CASE
 				WHEN COUNT(*) FILTER (WHERE original_address != 0) OVER (PARTITION BY name) > 1 THEN TRUE
 				ELSE FALSE

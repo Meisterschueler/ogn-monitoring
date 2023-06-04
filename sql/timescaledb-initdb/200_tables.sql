@@ -143,7 +143,9 @@ CREATE TABLE IF NOT EXISTS senders (
     address             INTEGER,
     software_version    DOUBLE PRECISION,
     hardware_version    TEXT,
-    original_address	INTEGER
+    original_address	INTEGER,
+
+    messages            INTEGER
 );
 ALTER TABLE senders ADD PRIMARY KEY (name, original_address);
 CREATE INDEX idx_senders_location ON senders USING gist (location);
