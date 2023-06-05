@@ -144,7 +144,11 @@ SELECT
 	CASE
 		WHEN s.is_duplicate THEN 'ERROR'
 		ELSE 'OK'
-	END AS check_duplicate,
+	END AS check_sender_duplicate,
+	CASE
+		WHEN s.software_version != NULL AND fe.expiry_date IS NULL THEN 'ERROR'
+		ELSE 'OK'
+	END AS check_sender_software_version_plausible, 
 	CASE
 		WHEN fe.expiry_date IS NULL THEN ''
 		WHEN fe.expiry_date - NOW() > INTERVAL'1 year' THEN 'OK'
@@ -184,11 +188,12 @@ FROM (
 			
 			SUM(messages) OVER (PARTITION BY name) AS messages,
 			CASE
-				WHEN COUNT(*) FILTER (WHERE original_address != 0) OVER (PARTITION BY name) > 1 THEN TRUE
+				WHEN COUNT(*) FILTER (WHERE original_address != 0 AND messages >= 3 AND fe.version IS NOT NULL) OVER (PARTITION BY name) > 1 THEN TRUE
 				ELSE FALSE
 			END as is_duplicate,
 			ROW_NUMBER() OVER (PARTITION BY name ORDER BY last_position DESC) AS row
-		FROM senders
+		FROM senders AS s
+		LEFT JOIN flarm_expiry AS fe ON s.software_version = fe.version
 	) AS sq
 	WHERE sq.row = 1
 ) AS s
