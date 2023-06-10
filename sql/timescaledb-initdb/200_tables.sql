@@ -65,7 +65,10 @@ CREATE TABLE IF NOT EXISTS positions (
     normalized_quality  DOUBLE PRECISION,
 
     -- additional (externally calculated) field, for PostGIS only
-    location            GEOMETRY(POINT, 4326)
+    location            GEOMETRY(POINT, 4326),
+
+    -- bit coded plausibility check
+    plausibility        SMALLINT
 );
 CREATE INDEX idx_positions_src_call ON positions (src_call, ts);
 
