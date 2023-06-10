@@ -314,16 +314,94 @@ FROM receivers AS r
 LEFT JOIN
 (
   SELECT
-    rs1h.receiver,
-    MAX(rs1h.ts) AS ts,
-    SUM(rs1h.points_fake) AS points_fake,
-    MAX(rs1h.normalized_quality) FILTER (WHERE rs1h.points_fake = 0) AS normalized_quality,
-    MAX(rs1h.distance) FILTER (WHERE rs1h.points_fake = 0) AS distance
-  FROM ranking_statistics_1d AS rs1h
+    p1d.receiver,
+    MAX(p1d.ts) AS ts,
+    SUM(p1d.points_fake) AS points_fake,
+    MAX(p1d.normalized_quality) FILTER (WHERE p1d.points_fake = 0) AS normalized_quality,
+    MAX(p1d.distance) FILTER (WHERE p1d.points_fake = 0) AS distance
+  FROM positions_1d AS p1d
   WHERE
-    NOW() - rs1h.ts < INTERVAL'7 days'
-    AND rs1h.distance IS NOT NULL
-  GROUP BY rs1h.receiver
+    NOW() - p1d.ts < INTERVAL'7 days'
+    AND p1d.distance IS NOT NULL
+  GROUP BY p1d.receiver
 ) AS rs ON rs.receiver = r.name
 ORDER BY r.iso2, r.name;
 
+
+-- create ranking view with the ranking for today
+CREATE MATERIALIZED VIEW ranking
+AS
+WITH daily_ranking AS (
+	WITH daily_values AS (
+		SELECT
+			time_bucket('1 day', ts) AS ts,
+			receiver,
+			MAX(distance) AS distance,
+			COUNT(*) AS sender_count,
+			SUM(points_total) AS messages
+		FROM positions_1h
+		WHERE
+			ts > NOW() - INTERVAL'30 days'
+			AND dst_call IN ('APRS', 'OGFLR')
+			AND plausibility = 0
+		GROUP BY time_bucket('1 day', ts), receiver
+		HAVING SUM(points_fake) = 0
+	)
+
+	SELECT
+		sq4.*,
+		row_number() OVER (PARTITION BY sq4.ts ORDER BY points DESC) AS ranking_global,
+		row_number() OVER (PARTITION BY sq4.ts, sq4.iso2 ORDER BY points DESC) AS ranking_country
+	FROM (
+		SELECT
+			sq3.*,
+			2 * sq3.distance_max + sq3.distance_avg AS points
+		FROM (
+			SELECT
+				sq2.ts,
+				sq2.receiver,
+				r.iso2,
+				r.altitude,
+				sq2.distance,
+				MAX(sq2.distance) OVER (PARTITION BY sq2.receiver ORDER BY sq2.ts ROWS BETWEEN 30 PRECEDING AND CURRENT ROW) AS distance_max,
+				AVG(sq2.distance) OVER (PARTITION BY sq2.receiver ORDER BY sq2.ts ROWS BETWEEN 30 PRECEDING AND CURRENT ROW) AS distance_avg
+			FROM (
+				SELECT
+					days_and_receivers.ts,
+					days_and_receivers.receiver,
+					COALESCE(d.distance, 0) AS distance,
+					COALESCE(d.sender_count, 0) AS sender_count,
+					COALESCE(d.messages, 0) AS messages
+				FROM
+				(
+					SELECT *
+					FROM (
+						SELECT DISTINCT ts FROM daily_values
+					) AS sq1,
+					(
+						SELECT DISTINCT receiver FROM daily_values
+					) AS sq2
+				) AS days_and_receivers
+				LEFT JOIN daily_values AS d ON d.ts = days_and_receivers.ts AND d.receiver = days_and_receivers.receiver
+			) AS sq2
+			INNER JOIN receivers AS r ON sq2.receiver = r.name
+		) AS sq3
+	) AS sq4
+)
+
+SELECT
+	dr.receiver,
+	dr.iso2,
+	iso2_to_emoji(dr.iso2) AS flag,
+	dr.altitude,
+	dr.ranking_global AS global,
+	dr2.ranking_global - dr.ranking_global AS "global:delta",
+	dr.ranking_country AS country,
+	dr2.ranking_country - dr.ranking_country AS "country:delta",
+	dr.distance,
+	dr.distance_max AS "distance:max",
+	dr.distance_avg AS "distance:avg",
+	dr.points
+FROM daily_ranking AS dr
+LEFT JOIN daily_ranking AS dr2 ON dr.receiver = dr2.receiver
+WHERE dr.ts = NOW()::DATE AND dr2.ts = dr.ts - INTERVAL'1 day'

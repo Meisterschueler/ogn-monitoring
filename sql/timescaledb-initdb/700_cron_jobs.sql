@@ -10,6 +10,7 @@ SELECT cron.schedule('*/5 * * * *', '-- regular 5min. update
 ');
 SELECT cron.schedule('*/5 * * * *', 'REFRESH MATERIALIZED VIEW senders_joined;');
 SELECT cron.schedule('*/5 * * * *', 'REFRESH MATERIALIZED VIEW receivers_joined;');
+SELECT cron.schedule('*/5 * * * *', 'REFRESH MATERIALIZED VIEW ranking;');
 
 -- 'Daily' updates
 SELECT cron.schedule('10 0 * * *', 'REFRESH MATERIALIZED VIEW senders_relative_qualities;');
