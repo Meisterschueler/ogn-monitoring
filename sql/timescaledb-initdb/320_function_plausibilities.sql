@@ -12,29 +12,27 @@ WITH plausibilities AS (
 	SELECT
 		ts,
 
-		0
-		+ (CASE WHEN vertical_jump THEN 1 ELSE 0 END)
-		+ (CASE WHEN horizontal_jump THEN 2 ELSE 0 END)
-		+ (CASE WHEN vertical_receiver_jump THEN 4 ELSE 0 END)
-		+ (CASE WHEN horizontal_receiver_jump THEN 8 ELSE 0 END)
+		CASE
+			WHEN distance IS NULL OR altitude IS NULL OR receiver_ts_jump OR receiver_ts_duplicate THEN -1
+			ELSE
+				0
+				+ CASE WHEN vertical_jump = TRUE OR horizontal_jump = TRUE THEN 1 ELSE 0 END
+				+ CASE WHEN vertical_receiver_jump = TRUE OR horizontal_receiver_jump = TRUE THEN 2 ELSE 0 END
+				
+				+ CASE WHEN vertical_jumps_range > 0 OR horizontal_jumps_range > 0 THEN 4 ELSE 0 END
+				+ CASE WHEN vertical_receiver_jumps_range > 0 OR horizontal_receiver_jumps_range > 0 THEN 8 ELSE 0 END
+				
+				+ CASE WHEN messages_range = 1 THEN 16 ELSE 0 END
+				+ CASE WHEN messages_receiver_range = 1 THEN 32 ELSE 0 END
 
-		+ (CASE WHEN vertical_jumps_range > 0 THEN 16 ELSE 0 END)
-		+ (CASE WHEN horizontal_jumps_range > 0 THEN 32 ELSE 0 END)
-		+ (CASE WHEN vertical_receiver_jumps_range > 0 THEN 64 ELSE 0 END)
-		+ (CASE WHEN horizontal_receiver_jumps_range > 0 THEN 128 ELSE 0 END)
+				+ CASE WHEN receivers_confirming_range = 1 THEN 256 ELSE 0 END
+				+ CASE WHEN receivers_confirming_point = 1 THEN 512 ELSE 0 END
+				+ CASE WHEN receivers_confirming_location = 1 THEN 1024 ELSE 0 END
+				+ CASE WHEN receivers_confirming_exact = 1 THEN 2048 ELSE 0 END
 
-		+ (CASE WHEN receivers_confirming_range = 1 THEN 256 ELSE 0 END)
-		+ (CASE WHEN receivers_confirming_point = 1 THEN 512 ELSE 0 END)
-		+ (CASE WHEN receivers_confirming_location = 1 THEN 1024 ELSE 0 END)
-		+ (CASE WHEN receivers_confirming_exact = 1 THEN 2048 ELSE 0 END)
-
-		+ (CASE WHEN receiver_ts_jump THEN 4096 ELSE 0 END)
-		+ (CASE WHEN receiver_ts_duplicate THEN 8192 ELSE 0 END)
-
-		--+ (CASE WHEN receivers_confirming_point >= 3 AND receivers_confirming_range - receivers_confirming_point > 1 THEN 16384 ELSE 0 END)
-		--+ (CASE WHEN receivers_confirming_location >= 3 AND receivers_confirming_point - receivers_confirming_location > 1 THEN 32768 ELSE 0 END)
-
-		AS value
+				--+ (CASE WHEN receivers_confirming_point >= 3 AND receivers_confirming_range - receivers_confirming_point > 1 THEN 16384 ELSE 0 END)
+				--+ (CASE WHEN receivers_confirming_location >= 3 AND receivers_confirming_point - receivers_confirming_location > 1 THEN 32768 ELSE 0 END)
+		END AS value
 	FROM (
 		SELECT
 			ts,
@@ -66,6 +64,10 @@ WITH plausibilities AS (
 			SUM(CAST(horizontal_jump_prev OR horizontal_jump_next AS INT)) OVER (PARTITION BY src_call ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS horizontal_jumps_range,
 			SUM(CAST(vertical_receiver_jump_prev OR vertical_receiver_jump_next AS INT)) OVER (PARTITION BY src_call, receiver ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS vertical_receiver_jumps_range,
 			SUM(CAST(horizontal_receiver_jump_prev OR horizontal_receiver_jump_next AS INT)) OVER (PARTITION BY src_call, receiver ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS horizontal_receiver_jumps_range,
+
+            -- messages count over range
+			COUNT(*) OVER (PARTITION BY src_call ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS messages_range,
+			COUNT(*) OVER (PARTITION BY src_call, receiver ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS messages_receiver_range,
 
 			-- confirmations
 			receivers_confirming_range,
