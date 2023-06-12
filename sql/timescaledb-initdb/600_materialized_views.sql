@@ -245,13 +245,13 @@ CREATE INDEX ON registration_joined(registration, address);
 CREATE MATERIALIZED VIEW senders_relative_qualities
 AS
 SELECT
-	time_bucket('1 day', rs.ts) AS ts,
-	rs.src_call,
+	time_bucket('1 day', p1d.ts) AS ts,
+	p1d.src_call,
 	
-	AVG(rs.normalized_quality - sq.normalized_quality) AS relative_quality,
-	SUM(CASE WHEN rs.normalized_quality < sq.percentile_10 THEN 1 ELSE 0 END) AS reporting_below_10,
+	AVG(p1d.normalized_quality - sq.normalized_quality) AS relative_quality,
+	SUM(CASE WHEN p1d.normalized_quality < sq.percentile_10 THEN 1 ELSE 0 END) AS reporting_below_10,
 	COUNT(*) AS total
-FROM ranking_statistics_1d AS rs
+FROM positions_1d AS p1d
 INNER JOIN (
 	SELECT
 		time_bucket('1 day', ts) AS ts,	
@@ -268,11 +268,11 @@ INNER JOIN (
 		percentile_disc(0.7) WITHIN GROUP (order by normalized_quality) AS percentile_70,
 		percentile_disc(0.8) WITHIN GROUP (order by normalized_quality) AS percentile_80,
 		percentile_disc(0.9) WITHIN GROUP (order by normalized_quality) AS percentile_90
-	FROM ranking_statistics_1d
+	FROM positions_1d
 	WHERE normalized_quality IS NOT NULL AND points_motion > 10
-	GROUP BY time_bucket('1 day', ts), receiver
-) AS sq ON sq.ts = rs.ts AND sq.receiver = rs.receiver
-GROUP BY time_bucket('1 day', rs.ts), rs.src_call;
+	GROUP BY 1, 2
+) AS sq ON sq.ts = p1d.ts AND sq.receiver = p1d.receiver
+GROUP BY 1, 2;
 
 -- Create receiver view with ALL relevant informations
 CREATE MATERIALIZED VIEW receivers_joined
@@ -323,7 +323,7 @@ LEFT JOIN
   WHERE
     NOW() - p1d.ts < INTERVAL'7 days'
     AND p1d.distance IS NOT NULL
-  GROUP BY p1d.receiver
+  GROUP BY 1
 ) AS rs ON rs.receiver = r.name
 ORDER BY r.iso2, r.name;
 
@@ -344,7 +344,7 @@ WITH daily_ranking AS (
 			ts > NOW() - INTERVAL'30 days'
 			AND dst_call IN ('APRS', 'OGFLR')
 			AND plausibility = 0
-		GROUP BY time_bucket('1 day', ts), receiver
+		GROUP BY 1, 2
 		HAVING SUM(points_fake) = 0
 	)
 
