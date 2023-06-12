@@ -19,10 +19,19 @@ CREATE TEMPORARY TABLE opensky_import (
 
 TRUNCATE opensky;
 INSERT INTO opensky (address, registration, manufacturer, model)
-SELECT
-	('x' || lpad(icao24, 8, '0'))::bit(32)::int AS address,
-	registration,
-	manufacturername AS manufacturer,
-	model
-FROM opensky_import
+SELECT address, registration, manufacturer, model
+FROM (
+	SELECT
+		*,
+		ROW_NUMBER() OVER (PARTITION BY address) AS row
+	FROM (
+		SELECT
+			('x' || lpad(icao24, 8, '0'))::bit(32)::int AS address,
+			registration,
+			manufacturername AS manufacturer,
+			model
+		FROM opensky_import
+	) AS sq
+) AS sq2
+WHERE sq2.row = 1
 ORDER BY address;

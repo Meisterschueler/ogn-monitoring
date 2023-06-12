@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS openaip (
 CREATE INDEX idx_openaip_location ON openaip USING gist(location);
 
 CREATE TABLE IF NOT EXISTS weglide (
-    address             INTEGER,
+    address             INTEGER PRIMARY KEY,
     registration        TEXT,
     CN                  TEXT,
     model               TEXT,
@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS weglide (
 );
 
 CREATE TABLE IF NOT EXISTS opensky (
-    address             INTEGER,
+    address             INTEGER PRIMARY KEY,
     registration        TEXT,
     manufacturer        TEXT,
     model               TEXT
