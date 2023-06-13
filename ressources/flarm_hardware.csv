@@ -1,7 +1,10 @@
-id,manufacturer,model
-"0x03","Flarm","Classic F6"
-"0x10","LX Navigation","Minibox / LX7007"
-"0x11","LX Navigation","Red box"
-"0x12","LX Navigation","Red box"
-"0x16","LX Nav","LX8000 / LX9000"
-"0x50","AIR Avionics","TRX-1500"
+id,code,manufacturer,model
+02,Flarm05,"Flarm","Classic F5"
+03,Flarm06,"Flarm","Classic F6"
+04,Flarm-IGC05,"Flarm","Classic F5 IGC"
+05,Flarm-IGC06,"Flarm","Classic F6 IGC"
+10,???,"LX Navigation","Minibox / LX7007"
+11,LX06_FR,"LX Navigation","Red box"
+12,???,"LX Navigation","Red box"
+16,???,"LX Nav","LX8000 / LX9000"
+50,TRXFLM,"AIR Avionics","TRX-1500"
