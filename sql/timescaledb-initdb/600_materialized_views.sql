@@ -171,31 +171,46 @@ FROM (
 		*
 	FROM (
 		SELECT
-			LAST_VALUE(name) OVER (PARTITION BY name ORDER BY last_position) AS name,
-			LAST_VALUE(last_position) OVER (PARTITION BY name ORDER BY last_position) AS last_position,
-			LAST_VALUE(last_status) OVER (PARTITION BY name ORDER BY last_position) AS last_status,
-			LAST_VALUE(location) OVER (PARTITION BY name ORDER BY last_position) AS location,
-			LAST_VALUE(altitude) OVER (PARTITION BY name ORDER BY last_position) AS altitude,
-			LAST_VALUE(address_type) OVER (PARTITION BY name ORDER BY last_position) AS address_type,
-			LAST_VALUE(aircraft_type) OVER (PARTITION BY name ORDER BY last_position) AS aircraft_type,
-			LAST_VALUE(is_stealth) OVER (PARTITION BY name ORDER BY last_position) AS is_stealth,
-			LAST_VALUE(is_notrack) OVER (PARTITION BY name ORDER BY last_position) AS is_notrack,
-			LAST_VALUE(address) OVER (PARTITION BY name ORDER BY last_position) AS address,
-			LAST_VALUE(software_version) OVER (PARTITION BY name ORDER BY last_position) AS software_version,
-			LAST_VALUE(hardware_version) OVER (PARTITION BY name ORDER BY last_position) AS hardware_version,
-			
-			LAST_VALUE(original_address) OVER (PARTITION BY name ORDER BY original_address) AS original_address,
-			
-			SUM(messages) OVER (PARTITION BY name) AS messages,
-			CASE
-				WHEN COUNT(*) FILTER (WHERE original_address != 0 AND messages >= 3 AND fe.version IS NOT NULL) OVER (PARTITION BY name) > 1 THEN TRUE
-				ELSE FALSE
-			END as is_duplicate,
-			ROW_NUMBER() OVER (PARTITION BY name ORDER BY last_position DESC) AS row
-		FROM senders AS s
-		LEFT JOIN flarm_expiry AS fe ON s.software_version = fe.version
-	) AS sq
-	WHERE sq.row = 1
+			LAST(name, last_position) OVER (PARTITION BY name ORDER BY last_position) AS name,
+			LAST(last_position, last_position) OVER (PARTITION BY name ORDER BY last_position) AS last_position,
+			LAST(last_status, last_status) OVER (PARTITION BY name ORDER BY last_status) AS last_status,
+			LAST(location, last_position) OVER (PARTITION BY name ORDER BY last_position) AS location,
+			LAST(altitude, last_position) OVER (PARTITION BY name ORDER BY last_position) AS altitude,
+			LAST(address_type, last_position) OVER (PARTITION BY name ORDER BY last_position) AS address_type,
+			LAST(aircraft_type, last_position) OVER (PARTITION BY name ORDER BY last_position) AS aircraft_type,
+			LAST(is_stealth, last_position) OVER (PARTITION BY name ORDER BY last_position) AS is_stealth,
+			LAST(is_notrack, last_position) OVER (PARTITION BY name ORDER BY last_position) AS is_notrack,
+			LAST(address, last_position) OVER (PARTITION BY name ORDER BY last_position) AS address,
+			LAST(software_version, row) OVER (PARTITION BY name ORDER BY row) AS software_version,
+			LAST(original_address, row) OVER (PARTITION BY name ORDER BY row) AS original_address,
+			LAST(messages_total, last_position) OVER (PARTITION BY name ORDER BY last_position) AS messages,
+			LAST(hardware_version, row) OVER (PARTITION BY name ORDER BY row) AS hardware_version,
+			LAST(is_duplicate, last_position) OVER (PARTITION BY name ORDER BY last_position) AS is_duplicate,
+			ROW_NUMBER() OVER (PARTITION BY name) AS row
+		FROM (
+			SELECT 
+				*,
+				SUM(messages) OVER (PARTITION BY name) AS messages_total,
+				CASE
+					WHEN COUNT(*) FILTER (WHERE is_version_valid IS TRUE) OVER (PARTITION BY name) > 1 THEN TRUE
+					ELSE FALSE
+				END as is_duplicate,
+				ROW_NUMBER() OVER (PARTITION BY name ORDER BY is_version_valid IS FALSE, last_position DESC) AS row
+			FROM (
+				SELECT
+					*,
+					CASE
+						WHEN original_address IS NULL THEN NULL
+						WHEN messages >= 3 AND (original_address IS NULL OR fe.version IS NOT NULL) THEN TRUE
+						ELSE FALSE
+					END AS is_version_valid
+				FROM senders
+				LEFT JOIN flarm_expiry AS fe ON software_version = fe.version
+			) AS sq
+		) AS sq2
+		WHERE sq2.row <= 2 AND (is_version_valid IS NULL OR is_version_valid IS TRUE)
+	) AS sq3
+	WHERE sq3.row = 1
 ) AS s
 LEFT JOIN ddb_joined AS dj ON s.address = dj.ddb_address
 LEFT JOIN flarm_hardware AS fh ON s.hardware_version = fh.id
@@ -317,8 +332,8 @@ LEFT JOIN
     p1d.receiver,
     MAX(p1d.ts) AS ts,
     SUM(p1d.points_fake) AS points_fake,
-    MAX(p1d.normalized_quality) FILTER (WHERE p1d.points_fake = 0) AS normalized_quality,
-    MAX(p1d.distance) FILTER (WHERE p1d.points_fake = 0) AS distance
+    MAX(p1d.normalized_quality) FILTER (WHERE p1d.plausibility = 0) AS normalized_quality,
+    MAX(p1d.distance) FILTER (WHERE p1d.plausibility = 0) AS distance
   FROM positions_1d AS p1d
   WHERE
     NOW() - p1d.ts < INTERVAL'7 days'
