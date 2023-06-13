@@ -150,7 +150,7 @@ CREATE TABLE IF NOT EXISTS senders (
 
     messages            INTEGER
 );
-ALTER TABLE senders ADD PRIMARY KEY (name, original_address);
+CREATE UNIQUE INDEX senders_upsert_idx ON senders (name, original_address) NULLS NOT DISTINCT;
 CREATE INDEX idx_senders_location ON senders USING gist (location);
 
 
