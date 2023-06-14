@@ -16,13 +16,26 @@ SELECT
 	r.description AS registration_description,
 	r.aircraft_types AS registration_aircraft_types,
 
-	SUM(CASE WHEN d.registration != '' THEN 1 ELSE 0 END) OVER (PARTITION BY d.registration) AS double_registration,
-	SUM(CASE WHEN d.registration != '' THEN 1 ELSE 0 END) OVER (PARTITION BY d.registration, d.address_type) AS double_registration_address_type,
-	SUM(CASE WHEN d.registration != '' THEN 1 ELSE 0 END) OVER (PARTITION BY d.registration, d.cn, d.model) AS double_registration_cn_model
-FROM ddb AS d
+	CASE
+		-- registration is unique
+		WHEN d.registration_count = 1 THEN 'OK'
+
+		-- registration + same CN + same model is seen twice but address type is different (can be ICAO address and default ID from same flarm)
+		WHEN d.registration_count = 2 AND d.registration_cn_model_count = 2 AND d.registration_address_type_count = 1 THEN 'WARNING'
+
+		ELSE 'ERROR'
+	END as check_registration_unique
+FROM (
+	SELECT
+		*,
+
+		SUM(CASE WHEN registration != '' THEN 1 ELSE 0 END) OVER (PARTITION BY registration) AS registration_count,
+		SUM(CASE WHEN registration != '' THEN 1 ELSE 0 END) OVER (PARTITION BY registration, address_type) AS registration_address_type_count,
+		SUM(CASE WHEN registration != '' THEN 1 ELSE 0 END) OVER (PARTITION BY registration, cn, model) AS registration_cn_model_count
+	FROM ddb
+) AS d
 LEFT JOIN registrations AS r ON d.registration SIMILAR TO r.regex;
 CREATE INDEX idx_ddb_joined_address ON ddb_joined (ddb_address);
-
 
 -- create sender view with ALL relevant informations
 CREATE MATERIALIZED VIEW senders_joined
@@ -97,13 +110,6 @@ SELECT
         WHEN 0 = ALL(dj.registration_aircraft_types) THEN 'GENERIC'
         ELSE 'ERROR'
     END AS check_registration_aircraft_types,
-	CASE
-		WHEN double_registration IS NULL THEN ''
-		WHEN double_registration = 0 THEN ''
-		WHEN double_registration = 1 THEN 'OK'
-		WHEN double_registration = dj.double_registration_cn_model AND dj.double_registration_address_type = 1 THEN 'WARNING'
-		ELSE 'ERROR'
-	END AS check_registration_double,
 	CASE
 		WHEN 
 			(s.name LIKE 'ICA%' OR s.name LIKE 'PAW%')
@@ -324,7 +330,28 @@ SELECT
     WHEN rs.normalized_quality < 10 THEN 'BLIND'
     WHEN rs.normalized_quality < 15 THEN 'WARNING'
     ELSE 'GOOD'
-  END AS "quality:check"
+  END AS "quality:check",
+  rst.cpu_temperature AS "cpu_temp",
+  CASE
+    WHEN rst.cpu_temperature IS NULL THEN ''
+    WHEN rst.cpu_temperature < 70 THEN 'OK'
+	WHEN rst.cpu_temperature < 80 THEN 'WARNING'
+	ELSE 'ERROR'
+  END AS "cpu_temp:check",
+  rst.rf_correction_automatic AS "rf_corr",
+  CASE
+    WHEN rst.rf_correction_automatic IS NULL THEN ''
+	WHEN ABS(rst.rf_correction_automatic) < 10 THEN 'OK'
+	WHEN ABS(rst.rf_correction_automatic) < 20 THEN 'WARNING'
+	ELSE 'ERROR'
+  END AS "rf_corr:check",
+  rst.reboots AS "reboots",
+  CASE
+    WHEN rst.reboots IS NULL THEN ''
+	WHEN rst.reboots < 14 THEN 'OK'
+	WHEN rst.reboots < 28 THEN 'WARNING'
+	ELSE 'ERROR'
+  END AS "reboots:check"
 FROM receivers AS r
 LEFT JOIN
 (
@@ -336,10 +363,28 @@ LEFT JOIN
     MAX(p1d.distance) FILTER (WHERE p1d.plausibility = 0) AS distance
   FROM positions_1d AS p1d
   WHERE
-    NOW() - p1d.ts < INTERVAL'7 days'
+    ts > NOW() - INTERVAL'7 days'
     AND p1d.distance IS NOT NULL
   GROUP BY 1
 ) AS rs ON rs.receiver = r.name
+LEFT JOIN (
+  SELECT
+    src_call,
+    MAX(cpu_temperature) AS cpu_temperature,
+    AVG(rf_correction_automatic) AS rf_correction_automatic,
+    SUM(CASE COALESCE(senders_messages, 0) < COALESCE(senders_messages_prev, 0) WHEN TRUE THEN 1 ELSE 0 END) AS reboots
+  FROM (
+    SELECT 
+      *,
+      LAG(senders_messages) OVER (PARTITION BY src_call ORDER BY ts) AS senders_messages_prev
+    FROM statuses 
+    WHERE
+      ts > NOW() - INTERVAL '7 days'
+      AND dst_call IN ('APRS', 'OGNSDR')
+      AND src_call NOT LIKE 'PW%'
+  ) AS sq
+  GROUP BY 1
+) AS rst ON rs.receiver = rst.src_call
 ORDER BY r.iso2, r.name;
 
 
