@@ -130,3 +130,24 @@ SELECT
 FROM direction_statistics_1h
 GROUP BY 1, 2, 3, 4, 5, 6
 WITH NO DATA;
+
+-- record statistics 1d
+CREATE MATERIALIZED VIEW records_1d
+WITH (timescaledb.continuous, timescaledb.materialized_only = TRUE)
+AS
+SELECT
+	time_bucket('1 day', ts) AS ts,
+	receiver,
+	
+	MAX(distance) AS distance,
+	COUNT(DISTINCT src_call) AS sender_count,
+	SUM(points_total) AS messages
+FROM positions_1h
+WHERE
+	distance IS NOT NULL
+	AND dst_call IN ('APRS', 'OGFLR')
+	AND plausibility = 0
+GROUP BY 1, 2
+HAVING SUM(points_fake) = 0
+ORDER BY 3 DESC
+WITH NO DATA;

@@ -392,22 +392,6 @@ ORDER BY r.iso2, r.name;
 CREATE MATERIALIZED VIEW ranking
 AS
 WITH daily_ranking AS (
-	WITH daily_values AS (
-		SELECT
-			time_bucket('1 day', ts) AS ts,
-			receiver,
-			MAX(distance) AS distance,
-			COUNT(*) AS sender_count,
-			SUM(points_total) AS messages
-		FROM positions_1h
-		WHERE
-			ts > NOW() - INTERVAL'30 days'
-			AND dst_call IN ('APRS', 'OGFLR')
-			AND plausibility = 0
-		GROUP BY 1, 2
-		HAVING SUM(points_fake) = 0
-	)
-
 	SELECT
 		sq4.*,
 		row_number() OVER (PARTITION BY sq4.ts ORDER BY points DESC) AS ranking_global,
@@ -429,20 +413,20 @@ WITH daily_ranking AS (
 				SELECT
 					days_and_receivers.ts,
 					days_and_receivers.receiver,
-					COALESCE(d.distance, 0) AS distance,
-					COALESCE(d.sender_count, 0) AS sender_count,
-					COALESCE(d.messages, 0) AS messages
+					COALESCE(r1d.distance, 0) AS distance,
+					COALESCE(r1d.sender_count, 0) AS sender_count,
+					COALESCE(r1d.messages, 0) AS messages
 				FROM
 				(
 					SELECT *
 					FROM (
-						SELECT DISTINCT ts FROM daily_values
+						SELECT DISTINCT ts FROM records_1d WHERE ts > NOW() - INTERVAL '30 days'
 					) AS sq1,
 					(
-						SELECT DISTINCT receiver FROM daily_values
+						SELECT DISTINCT receiver FROM records_1d WHERE ts > NOW() - INTERVAL '30 days'
 					) AS sq2
 				) AS days_and_receivers
-				LEFT JOIN daily_values AS d ON d.ts = days_and_receivers.ts AND d.receiver = days_and_receivers.receiver
+				LEFT JOIN records_1d AS r1d ON r1d.ts = days_and_receivers.ts AND r1d.receiver = days_and_receivers.receiver
 			) AS sq2
 			INNER JOIN receivers AS r ON sq2.receiver = r.name
 		) AS sq3
