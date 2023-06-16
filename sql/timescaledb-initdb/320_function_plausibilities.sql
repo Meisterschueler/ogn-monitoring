@@ -5,7 +5,7 @@ AS $$
 DECLARE
 	processed_rows BIGINT;
 BEGIN
-	
+
 EXECUTE '
 
 WITH plausibilities AS (
@@ -18,20 +18,23 @@ WITH plausibilities AS (
 				0
 				+ CASE WHEN vertical_jump = TRUE OR horizontal_jump = TRUE THEN 1 ELSE 0 END
 				+ CASE WHEN vertical_receiver_jump = TRUE OR horizontal_receiver_jump = TRUE THEN 2 ELSE 0 END
-				
+
 				+ CASE WHEN vertical_jumps_range > 0 OR horizontal_jumps_range > 0 THEN 4 ELSE 0 END
 				+ CASE WHEN vertical_receiver_jumps_range > 0 OR horizontal_receiver_jumps_range > 0 THEN 8 ELSE 0 END
-				
+
 				+ CASE WHEN messages_range = 1 THEN 16 ELSE 0 END
 				+ CASE WHEN messages_receiver_range = 1 THEN 32 ELSE 0 END
 
-				+ CASE WHEN receivers_confirming_range = 1 THEN 256 ELSE 0 END
-				+ CASE WHEN receivers_confirming_point = 1 THEN 512 ELSE 0 END
-				+ CASE WHEN receivers_confirming_location = 1 THEN 1024 ELSE 0 END
-				+ CASE WHEN receivers_confirming_exact = 1 THEN 2048 ELSE 0 END
+				+ CASE WHEN receivers_confirming_range = 1 THEN 64 ELSE 0 END
+				+ CASE WHEN receivers_confirming_point = 1 THEN 128 ELSE 0 END
+				+ CASE WHEN receivers_confirming_location = 1 THEN 256 ELSE 0 END
+				+ CASE WHEN receivers_confirming_exact = 1 THEN 512 ELSE 0 END
 
-				--+ (CASE WHEN receivers_confirming_point >= 3 AND receivers_confirming_range - receivers_confirming_point > 1 THEN 16384 ELSE 0 END)
-				--+ (CASE WHEN receivers_confirming_location >= 3 AND receivers_confirming_point - receivers_confirming_location > 1 THEN 32768 ELSE 0 END)
+				+ CASE
+					WHEN receivers_confirming_exact = 1 AND receivers_confirming_exact_range >= 1 THEN 0
+					WHEN receivers_confirming_exact > 1 AND receivers_confirming_exact_range >= 2 THEN 0
+					ELSE 4096
+				  END
 		END AS value
 	FROM (
 		SELECT
@@ -69,16 +72,19 @@ WITH plausibilities AS (
 			COUNT(*) OVER (PARTITION BY src_call ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS messages_range,
 			COUNT(*) OVER (PARTITION BY src_call, receiver ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS messages_receiver_range,
 
-			-- confirmations
+			-- confirmations of the current message
 			receivers_confirming_range,
 			receivers_confirming_point,
 			receivers_confirming_location,
 			receivers_confirming_exact,
 
+			-- count of exact message confirmations in the time range (5 minutes)
+			COUNT(*) FILTER (WHERE receivers_confirming_exact > 1) OVER (PARTITION BY src_call ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS receivers_confirming_exact_range,
+
 			-- receiver_ts plausibility
 			ABS(EXTRACT(epoch FROM ts - receiver_ts)) > 300 AS receiver_ts_jump,
 			COUNT(*) FILTER (WHERE receiver_ts IS NOT NULL) OVER (PARTITION BY src_call, receiver, receiver_ts ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) > 1 AS receiver_ts_duplicate,
-			
+
 			-- limits
 			lower_limit,
 			upper_limit
@@ -276,7 +282,6 @@ WHERE
 
 END;
 $$ LANGUAGE plpgsql;
-
 -- this function is for small time ranges (< 1h) ...  
 CREATE OR REPLACE FUNCTION update_plausibilities(start_time TIMESTAMP, end_time TIMESTAMP)
   RETURNS void
