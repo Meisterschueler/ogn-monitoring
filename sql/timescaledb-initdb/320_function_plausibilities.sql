@@ -65,7 +65,7 @@ WITH plausibilities AS (
 			SUM(CAST(vertical_receiver_jump_prev OR vertical_receiver_jump_next AS INT)) OVER (PARTITION BY src_call, receiver ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS vertical_receiver_jumps_range,
 			SUM(CAST(horizontal_receiver_jump_prev OR horizontal_receiver_jump_next AS INT)) OVER (PARTITION BY src_call, receiver ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS horizontal_receiver_jumps_range,
 
-            -- messages count over range
+			-- messages count over range
 			COUNT(*) OVER (PARTITION BY src_call ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS messages_range,
 			COUNT(*) OVER (PARTITION BY src_call, receiver ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS messages_receiver_range,
 
@@ -77,7 +77,11 @@ WITH plausibilities AS (
 
 			-- receiver_ts plausibility
 			ABS(EXTRACT(epoch FROM ts - receiver_ts)) > 300 AS receiver_ts_jump,
-			COUNT(*) FILTER (WHERE receiver_ts IS NOT NULL) OVER (PARTITION BY src_call, receiver, receiver_ts ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) > 1 AS receiver_ts_duplicate
+			COUNT(*) FILTER (WHERE receiver_ts IS NOT NULL) OVER (PARTITION BY src_call, receiver, receiver_ts ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) > 1 AS receiver_ts_duplicate,
+			
+			-- limits
+			lower_limit,
+			upper_limit
 		FROM (
 			SELECT
 				*,
@@ -252,10 +256,10 @@ WITH plausibilities AS (
 						AND receiver NOT LIKE ''GLIDERN%''
 						AND ts BETWEEN lower_buffer AND upper_buffer
 				) AS sq2
-				WHERE ts BETWEEN lower_limit AND upper_limit
 			) AS sq3
 		) AS sq4
 	) AS sq5
+	WHERE ts BETWEEN lower_limit AND upper_limit
 )
 	
 UPDATE ' || table_name || ' AS pos
