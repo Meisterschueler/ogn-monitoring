@@ -62,3 +62,13 @@ CREATE TABLE IF NOT EXISTS opensky (
     manufacturer        TEXT,
     model               TEXT
 );
+
+CREATE TABLE IF NOT EXISTS flarmnet (
+    address             INTEGER PRIMARY KEY,
+    owner               TEXT,
+    airport             TEXT,
+    model               TEXT,
+    registration        TEXT,
+    CN                  TEXT,
+    radio               TEXT
+);

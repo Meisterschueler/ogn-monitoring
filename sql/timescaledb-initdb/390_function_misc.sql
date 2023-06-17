@@ -85,3 +85,15 @@ BEGIN
 END;
 
 $$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION hex_to_string(hex_string text) RETURNS text AS $$
+DECLARE
+  result text := '';
+BEGIN
+	FOR i IN 1..LENGTH(hex_string) BY 2 LOOP
+	  result := result || CHR(('x' || SUBSTRING(hex_string FROM i FOR 2))::bit(8)::int);
+	END LOOP;
+  
+  RETURN result;
+END;
+$$ LANGUAGE plpgsql;
