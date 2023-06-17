@@ -84,6 +84,10 @@ SELECT
 	w.model AS weglide_model,
 	w.until AS weglide_until,
 	w.pilot AS weglide_pilot,
+	fn.registration AS flarmnet_registration,
+	fn.cn AS flarmnet_cn,
+	fn.model AS flarmnet_model,
+	fn.radio AS flarmnet_radio,
 	i.iso2 AS icao24bit_iso2,
 	i.lower_limit AS icao24bit_lower_limit,
 	i.upper_limit AS icao24bit_upper_limit,
@@ -96,12 +100,14 @@ SELECT
 		WHEN COALESCE(dj.ddb_registration, '') != '' THEN dj.ddb_registration
 		WHEN COALESCE(o.registration, '') != '' THEN o.registration || ' (opensky)'
 		WHEN COALESCE(w.registration, '') != '' THEN w.registration || ' (weglide)'
+		WHEN COALESCE(fn.registration, '') != '' THEN fn.registration || ' (flarmnet)'
 		ELSE ''
 	END AS registration,
 	CASE
 		WHEN COALESCE(dj.ddb_model, '') != '' THEN dj.ddb_model
 		WHEN COALESCE(o.model, '') != '' THEN o.model || ' (opensky)'
 		WHEN COALESCE(w.model, '') != '' THEN w.model || ' (weglide)'
+		WHEN COALESCE(fn.model, '') != '' THEN fn.model || ' (flarmnet)'
 		ELSE ''
 	END AS model,
 	CASE 
@@ -157,7 +163,7 @@ SELECT
 	END AS check_sender_software_version_plausible, 
 	CASE
 		WHEN fe.expiry_date IS NULL THEN ''
-		WHEN fe.expiry_date - NOW() > INTERVAL'1 year' THEN 'OK'
+		WHEN fe.expiry_date - NOW() > INTERVAL'6 months' THEN 'OK'
 		WHEN fe.expiry_date - NOW() > INTERVAL'2 months' THEN 'WARNING'
 		WHEN fe.expiry_date - NOW() > INTERVAL'1 day' THEN 'DANGER'
 		ELSE 'EXPIRED'
@@ -171,7 +177,12 @@ SELECT
 		WHEN dj.ddb_registration IS NULL OR w.registration IS NULL THEN ''
 		WHEN dj.ddb_registration IS NOT NULL AND w.registration IS NOT NULL AND dj.ddb_registration = w.registration THEN 'OK'
 		ELSE 'ERROR'
-	END AS check_weglide_registration
+	END AS check_weglide_registration,
+	CASE
+		WHEN dj.ddb_registration IS NULL OR fn.registration IS NULL THEN ''
+		WHEN dj.ddb_registration IS NOT NULL AND fn.registration IS NOT NULL AND dj.ddb_registration = fn.registration THEN 'OK'
+		ELSE 'ERROR'
+	END AS check_flarmnet_registration
 FROM (
 	SELECT
 		*
@@ -223,6 +234,7 @@ LEFT JOIN flarm_hardware AS fh ON s.hardware_version = fh.id
 LEFT JOIN flarm_expiry AS fe ON s.software_version = fe.version
 LEFT JOIN opensky AS o ON s.address = o.address
 LEFT JOIN weglide AS w ON s.address = w.address
+LEFT JOIN flarmnet AS fn ON s.address = fn.address
 LEFT JOIN icao24bit AS i ON s.address BETWEEN lower_limit AND upper_limit
 CROSS JOIN LATERAL (
 	SELECT *
@@ -254,6 +266,15 @@ UNION
 
 SELECT
   'WeGlide' AS "source",
+  w.address AS "address",
+  w.registration AS "registration",
+  w.model AS "model"
+FROM weglide AS w
+
+UNION
+
+SELECT
+  'Flarmnet' AS "source",
   w.address AS "address",
   w.registration AS "registration",
   w.model AS "model"
