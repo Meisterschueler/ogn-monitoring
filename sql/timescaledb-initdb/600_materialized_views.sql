@@ -37,6 +37,7 @@ FROM (
 LEFT JOIN registrations AS r ON d.registration SIMILAR TO r.regex;
 CREATE INDEX idx_ddb_joined_address ON ddb_joined (ddb_address);
 
+
 -- create sender view with ALL relevant informations
 CREATE MATERIALIZED VIEW senders_joined
 AS
@@ -88,6 +89,8 @@ SELECT
 	fn.cn AS flarmnet_cn,
 	fn.model AS flarmnet_model,
 	fn.radio AS flarmnet_radio,
+	q.relative_quality AS quality_relative_quality,
+	1.0 / 10^(-q.relative_quality/20.0) AS quality_relative_range,
 	i.iso2 AS icao24bit_iso2,
 	i.lower_limit AS icao24bit_lower_limit,
 	i.upper_limit AS icao24bit_upper_limit,
@@ -235,6 +238,14 @@ LEFT JOIN flarm_expiry AS fe ON s.software_version = fe.version
 LEFT JOIN opensky AS o ON s.address = o.address
 LEFT JOIN weglide AS w ON s.address = w.address
 LEFT JOIN flarmnet AS fn ON s.address = fn.address
+LEFT JOIN (
+	SELECT
+		src_call,
+		AVG(relative_quality) AS relative_quality
+	FROM senders_relative_qualities
+	WHERE ts > now() - INTERVAL '30 days'
+	GROUP BY 1
+) AS q ON s.name = q.src_call
 LEFT JOIN icao24bit AS i ON s.address BETWEEN lower_limit AND upper_limit
 CROSS JOIN LATERAL (
 	SELECT *
