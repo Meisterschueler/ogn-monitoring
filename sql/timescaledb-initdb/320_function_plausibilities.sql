@@ -28,13 +28,16 @@ WITH plausibilities AS (
 				+ CASE WHEN receivers_confirming_range = 1 THEN 64 ELSE 0 END
 				+ CASE WHEN receivers_confirming_point = 1 THEN 128 ELSE 0 END
 				+ CASE WHEN receivers_confirming_location = 1 THEN 256 ELSE 0 END
-				+ CASE WHEN receivers_confirming_exact = 1 THEN 512 ELSE 0 END
 
 				+ CASE
-					WHEN receivers_confirming_exact = 1 AND receivers_confirming_exact_range >= 1 THEN 0
-					WHEN receivers_confirming_exact > 1 AND receivers_confirming_exact_range >= 2 THEN 0
-					ELSE 4096
+					WHEN receivers_confirming_location = 1 AND receivers_confirming_location_range >= 1 THEN 0
+					WHEN receivers_confirming_location > 1 AND receivers_confirming_location_range >= 2 THEN 0
+					ELSE 512
 				  END
+				  
+				+ CASE WHEN fake_distance_range > 0 THEN 1024 ELSE 0 END
+				+ CASE WHEN fake_distance_receiver_range > 0 THEN 2048 ELSE 0 END
+				
 		END AS value
 	FROM (
 		SELECT
@@ -76,10 +79,13 @@ WITH plausibilities AS (
 			receivers_confirming_range,
 			receivers_confirming_point,
 			receivers_confirming_location,
-			receivers_confirming_exact,
 
-			-- count of exact message confirmations in the time range (5 minutes)
-			COUNT(*) FILTER (WHERE receivers_confirming_exact > 1) OVER (PARTITION BY src_call ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS receivers_confirming_exact_range,
+			-- count of message location confirmations in the time range (5 minutes)
+			COUNT(*) FILTER (WHERE receivers_confirming_location > 1) OVER (PARTITION BY src_call ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS receivers_confirming_location_range,
+
+			-- distance plausibility
+			COUNT(*) FILTER (WHERE distance >= 1000000) OVER (PARTITION BY src_call ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS fake_distance_range,
+			COUNT(*) FILTER (WHERE distance >= 1000000) OVER (PARTITION BY src_call, receiver ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS fake_distance_receiver_range,
 
 			-- receiver_ts plausibility
 			ABS(EXTRACT(epoch FROM ts - receiver_ts)) > 300 AS receiver_ts_jump,
@@ -157,15 +163,10 @@ WITH plausibilities AS (
 					- MIN(receiver_rank_point) OVER (PARTITION BY src_call, receiver_ts ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING)
 					+ 1 AS receivers_confirming_point,
 
-				-- in the same location (2d)
+				-- with the same location
 				MAX(receiver_rank_location) OVER (PARTITION BY src_call, receiver_ts, location ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING)
 					- MIN(receiver_rank_location) OVER (PARTITION BY src_call, receiver_ts, location ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING)
-					+ 1 AS receivers_confirming_location,
-
-				-- with the same altitude (3d)
-				MAX(receiver_rank_exact) OVER (PARTITION BY src_call, receiver_ts, location, altitude ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING)
-					- MIN(receiver_rank_exact) OVER (PARTITION BY src_call, receiver_ts, location, altitude ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING)
-					+ 1 AS receivers_confirming_exact
+					+ 1 AS receivers_confirming_location
 			FROM (
 				SELECT
 					*,
@@ -225,8 +226,7 @@ WITH plausibilities AS (
 					-- needed for the receiver confirmation calculations (next step)
 					DENSE_RANK() OVER (PARTITION BY src_call ORDER BY receiver) AS receiver_rank_range,
 					DENSE_RANK() OVER (PARTITION BY src_call, receiver_ts ORDER BY receiver) AS receiver_rank_point,
-					DENSE_RANK() OVER (PARTITION BY src_call, receiver_ts, location ORDER BY receiver) AS receiver_rank_location,
-					DENSE_RANK() OVER (PARTITION BY src_call, receiver_ts, location, altitude ORDER BY receiver) AS receiver_rank_exact
+					DENSE_RANK() OVER (PARTITION BY src_call, receiver_ts, location ORDER BY receiver) AS receiver_rank_location
 				FROM (
 					SELECT
 						p.*,
@@ -282,6 +282,7 @@ WHERE
 
 END;
 $$ LANGUAGE plpgsql;
+
 -- this function is for small time ranges (< 1h) ...  
 CREATE OR REPLACE FUNCTION update_plausibilities(start_time TIMESTAMP, end_time TIMESTAMP)
   RETURNS void
