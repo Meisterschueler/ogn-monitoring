@@ -146,8 +146,13 @@ FROM positions_1h
 WHERE
 	distance IS NOT NULL
 	AND dst_call IN ('APRS', 'OGFLR')
-	AND plausibility = 0
+	AND (
+		plausibility & b'110000111111'::int = 0	-- no jumps, no singles, no fakes, ...
+		AND (
+			   plausibility & b'000111000000'::int = 0 -- direct confirmation
+			or plausibility & b'001000000000'::int = 0 -- indirect confirmation
+		)
+	)
 GROUP BY 1, 2
-HAVING SUM(points_fake) = 0
 ORDER BY 3 DESC
 WITH NO DATA;
