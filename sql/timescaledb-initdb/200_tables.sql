@@ -153,6 +153,16 @@ CREATE TABLE IF NOT EXISTS senders (
 CREATE UNIQUE INDEX senders_upsert_idx ON senders (name, original_address) NULLS NOT DISTINCT;
 CREATE INDEX idx_senders_location ON senders USING gist (location);
 
+CREATE TABLE IF NOT EXISTS records_1d (
+    "ts"                TIMESTAMPTZ NOT NULL,
+    receiver            VARCHAR(9) NOT NULL,
+	
+	distance            DOUBLE PRECISION,
+	distance_ts         TIMESTAMPTZ NOT NULL,
+	distance_src_call   VARCHAR(9) NOT NULL
+);
+CREATE UNIQUE INDEX records_upsert_idx ON records_1d (ts, receiver);
+
 
 -- create hypertables for messages tables
 SELECT create_hypertable('invalids', 'ts', chunk_time_interval => INTERVAL '10 days');

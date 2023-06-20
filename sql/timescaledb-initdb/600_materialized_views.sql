@@ -423,61 +423,44 @@ ORDER BY r.iso2, r.name;
 -- create ranking view with the ranking for today
 CREATE MATERIALIZED VIEW ranking
 AS
-WITH daily_ranking AS (
+SELECT
+	sq4.*,
+	row_number() OVER (PARTITION BY sq4.ts ORDER BY points DESC) AS ranking_global,
+	row_number() OVER (PARTITION BY sq4.ts, sq4.iso2 ORDER BY points DESC) AS ranking_country
+FROM (
 	SELECT
-		sq4.*,
-		row_number() OVER (PARTITION BY sq4.ts ORDER BY points DESC) AS ranking_global,
-		row_number() OVER (PARTITION BY sq4.ts, sq4.iso2 ORDER BY points DESC) AS ranking_country
+		sq3.*,
+		2 * sq3.distance_max + sq3.distance_avg AS points
 	FROM (
 		SELECT
-			sq3.*,
-			2 * sq3.distance_max + sq3.distance_avg AS points
+			sq2.ts,
+			sq2.receiver,
+			r.iso2,
+			r.altitude,
+			sq2.distance,
+			sq2.distance_ts,
+			sq2.distance_src_call,
+			MAX(COALESCE(sq2.distance, 0)) OVER (PARTITION BY sq2.receiver ORDER BY sq2.ts ROWS BETWEEN 30 PRECEDING AND CURRENT ROW) AS distance_max,
+			AVG(COALESCE(sq2.distance, 0)) OVER (PARTITION BY sq2.receiver ORDER BY sq2.ts ROWS BETWEEN 30 PRECEDING AND CURRENT ROW) AS distance_avg
 		FROM (
 			SELECT
-				sq2.ts,
-				sq2.receiver,
-				r.iso2,
-				r.altitude,
-				sq2.distance,
-				MAX(sq2.distance) OVER (PARTITION BY sq2.receiver ORDER BY sq2.ts ROWS BETWEEN 30 PRECEDING AND CURRENT ROW) AS distance_max,
-				AVG(sq2.distance) OVER (PARTITION BY sq2.receiver ORDER BY sq2.ts ROWS BETWEEN 30 PRECEDING AND CURRENT ROW) AS distance_avg
-			FROM (
-				SELECT
-					days_and_receivers.ts,
-					days_and_receivers.receiver,
-					COALESCE(r1d.distance, 0) AS distance,
-					COALESCE(r1d.sender_count, 0) AS sender_count,
-					COALESCE(r1d.messages, 0) AS messages
-				FROM
+				days_and_receivers.ts,
+				days_and_receivers.receiver,
+				r1d.distance,
+				r1d.distance_ts,
+				r1d.distance_src_call
+			FROM
+			(
+				SELECT *
+				FROM (
+					SELECT DISTINCT ts FROM records_1d WHERE ts > NOW() - INTERVAL '30 days'
+				) AS sq1,
 				(
-					SELECT *
-					FROM (
-						SELECT DISTINCT ts FROM records_1d WHERE ts > NOW() - INTERVAL '30 days'
-					) AS sq1,
-					(
-						SELECT DISTINCT receiver FROM records_1d WHERE ts > NOW() - INTERVAL '30 days'
-					) AS sq2
-				) AS days_and_receivers
-				LEFT JOIN records_1d AS r1d ON r1d.ts = days_and_receivers.ts AND r1d.receiver = days_and_receivers.receiver
-			) AS sq2
-			INNER JOIN receivers AS r ON sq2.receiver = r.name
-		) AS sq3
-	) AS sq4
-)
-
-SELECT
-	dr.receiver,
-	dr.iso2,
-	iso2_to_emoji(dr.iso2) AS flag,
-	dr.altitude,
-	dr.ranking_global AS global,
-	dr2.ranking_global - dr.ranking_global AS "global:delta",
-	dr.ranking_country AS country,
-	dr2.ranking_country - dr.ranking_country AS "country:delta",
-	dr.distance,
-	dr.distance_max AS "distance:max",
-	dr.distance_avg AS "distance:avg",
-	dr.points
-FROM daily_ranking AS dr
-LEFT JOIN daily_ranking AS dr2 ON dr.receiver = dr2.receiver
-WHERE dr.ts = NOW()::DATE AND dr2.ts = dr.ts - INTERVAL'1 day'
+					SELECT DISTINCT receiver FROM records_1d WHERE ts > NOW() - INTERVAL '30 days'
+				) AS sq2
+			) AS days_and_receivers
+			LEFT JOIN records_1d AS r1d ON r1d.ts = days_and_receivers.ts AND r1d.receiver = days_and_receivers.receiver
+		) AS sq2
+		INNER JOIN receivers AS r ON sq2.receiver = r.name
+	) AS sq3
+) AS sq4;
