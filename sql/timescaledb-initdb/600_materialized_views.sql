@@ -166,6 +166,7 @@ SELECT
 		ELSE 'OK'
 	END AS check_sender_duplicate,
 	CASE
+		WHEN s.software_version IS NULL THEN ''
 		WHEN s.software_version != NULL AND fe.expiry_date IS NULL THEN 'ERROR'
 		ELSE 'OK'
 	END AS check_sender_software_version_plausible, 
