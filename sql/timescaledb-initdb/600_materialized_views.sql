@@ -114,11 +114,12 @@ SELECT
 		ELSE ''
 	END AS model,
 	CASE 
-        WHEN s.aircraft_type IS NULL OR dj.registration_aircraft_types IS NULL THEN ''
-        WHEN s.aircraft_type = ANY(dj.registration_aircraft_types) THEN 'OK'
-        WHEN 0 = ALL(dj.registration_aircraft_types) THEN 'GENERIC'
-        ELSE 'ERROR'
-    END AS check_registration_aircraft_types,
+		WHEN s.aircraft_type IS NULL THEN ''
+		WHEN dj.registration_aircraft_types IS NULL THEN 'UNKNOWN'
+		WHEN s.aircraft_type = ANY(dj.registration_aircraft_types) THEN 'OK'
+		WHEN 0 = ALL(dj.registration_aircraft_types) THEN 'GENERIC'
+		ELSE 'ERROR'
+	END AS check_registration_aircraft_types,
 	CASE
 		WHEN 
 			(s.name LIKE 'ICA%' OR s.name LIKE 'PAW%')
@@ -136,6 +137,7 @@ SELECT
 	END AS check_iso2,
 	CASE
 		WHEN dj.ddb_model_type IS NULL OR dj.ddb_model IS NULL THEN ''
+		WHEN s.aircraft_type IS NULL THEN 'UNKNOWN'
 		WHEN s.aircraft_type = 1 AND dj.ddb_model_type = 1 THEN 'OK'			-- (moto-)glider -> Gliders/motoGliders
 		WHEN s.aircraft_type = 2 AND dj.ddb_model_type IN (1,2,3) THEN 'OK'		-- tow plane -> Gliders/motoGliders, Planes or Ultralight
 		WHEN s.aircraft_type = 3 AND dj.ddb_model_type = 4 THEN 'OK'			-- helicopter -> Helicopter
@@ -148,14 +150,14 @@ SELECT
 		WHEN s.aircraft_type = 13 AND dj.ddb_model_type = 5 THEN 'OK'			-- UAV -> Drones/UAV
 		WHEN s.aircraft_type = 14 AND dj.ddb_model_type = 6 AND dj.ddb_model = 'Ground Station' THEN 'OK'	-- ground support -> Others::Ground Station
 		WHEN s.aircraft_type = 15 AND dj.ddb_model_type = 6 AND dj.ddb_model = 'Ground Station' THEN 'OK'	-- static object -> Others::Ground Station
-		WHEN s.aircraft_type IS NULL THEN 'UNKNOWN'
 		ELSE 'ERROR'
 	END AS check_model_type,
 	CASE
-        WHEN s.address_type IS NULL OR dj.ddb_address_type IS NULL THEN 'UNKNOWN'
-        WHEN s.address_type != dj.ddb_address_type THEN 'ERROR'
-        ELSE 'OK'
-    END AS check_address_type,
+		WHEN dj.ddb_address_type IS NULL THEN ''
+		WHEN s.address_type IS NULL THEN 'UNKNOWN'
+		WHEN s.address_type != dj.ddb_address_type THEN 'ERROR'
+		ELSE 'OK'
+	END AS check_address_type,
 	CASE
 		WHEN s.is_duplicate THEN 'ERROR'
 		ELSE 'OK'
