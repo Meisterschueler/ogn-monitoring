@@ -104,16 +104,16 @@ SELECT
 	END AS iso2,
 	CASE
 		WHEN COALESCE(dj.ddb_registration, '') != '' THEN dj.ddb_registration
-		WHEN COALESCE(o.registration, '') != '' THEN o.registration || ' (opensky)'
-		WHEN COALESCE(w.registration, '') != '' THEN w.registration || ' (weglide)'
-		WHEN COALESCE(fn.registration, '') != '' THEN fn.registration || ' (flarmnet)'
+		WHEN COALESCE(o.registration, '') != '' THEN o.registration
+		WHEN COALESCE(w.registration, '') != '' THEN w.registration
+		WHEN COALESCE(fn.registration, '') != '' THEN fn.registration
 		ELSE ''
 	END AS registration,
 	CASE
 		WHEN COALESCE(dj.ddb_model, '') != '' THEN dj.ddb_model
-		WHEN COALESCE(o.model, '') != '' THEN o.model || ' (opensky)'
-		WHEN COALESCE(w.model, '') != '' THEN w.model || ' (weglide)'
-		WHEN COALESCE(fn.model, '') != '' THEN fn.model || ' (flarmnet)'
+		WHEN COALESCE(o.model, '') != '' THEN o.model
+		WHEN COALESCE(w.model, '') != '' THEN w.model
+		WHEN COALESCE(fn.model, '') != '' THEN fn.model
 		ELSE ''
 	END AS model,
 	CASE 
