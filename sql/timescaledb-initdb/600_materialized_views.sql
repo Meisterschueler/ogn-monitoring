@@ -17,6 +17,9 @@ SELECT
 	r.aircraft_types AS registration_aircraft_types,
 
 	CASE
+		-- no registration found
+		WHEN d.registration_count = 0 THEN ''
+	
 		-- registration is unique
 		WHEN d.registration_count = 1 THEN 'OK'
 
