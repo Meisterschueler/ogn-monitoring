@@ -292,10 +292,10 @@ UNION
 
 SELECT
   'Flarmnet' AS "source",
-  w.address AS "address",
-  w.registration AS "registration",
-  w.model AS "model"
-FROM weglide AS w;
+  f.address AS "address",
+  f.registration AS "registration",
+  f.model AS "model"
+FROM flarmnet AS f;
 
 CREATE INDEX ON registration_joined(address, registration);
 CREATE INDEX ON registration_joined(registration, address);
