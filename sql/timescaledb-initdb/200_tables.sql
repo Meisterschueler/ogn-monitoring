@@ -163,6 +163,16 @@ CREATE TABLE IF NOT EXISTS records_1d (
 );
 CREATE UNIQUE INDEX records_upsert_idx ON records_1d (ts, receiver);
 
+CREATE TABLE IF NOT EXISTS confirmations_1d (
+    "ts"                TIMESTAMPTZ NOT NULL,
+    receiver1           VARCHAR(9) NOT NULL,
+    receiver2           VARCHAR(9) NOT NULL,
+    altitude_delta      DOUBLE PRECISION,
+	
+    messages            INTEGER
+);
+CREATE UNIQUE INDEX confirmations_upsert_idx ON confirmations_1d (ts, receiver1, receiver2, altitude_delta);
+
 
 -- create hypertables for messages tables
 SELECT create_hypertable('invalids', 'ts', chunk_time_interval => INTERVAL '10 days');
