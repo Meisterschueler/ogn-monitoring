@@ -145,7 +145,7 @@ CREATE TABLE IF NOT EXISTS senders (
     is_notrack          BOOLEAN,
     address             INTEGER,
     software_version    DOUBLE PRECISION,
-    hardware_version    TEXT,
+    hardware_version    SMALLINT,
     original_address	INTEGER,
 
     messages            INTEGER
