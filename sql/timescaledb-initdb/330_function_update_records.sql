@@ -42,6 +42,7 @@ BEGIN
 					)
 				)
 			GROUP BY 1, 2
+			HAVING MIN(distance) <= 200000	-- ignore 'records' from receivers who dont see anything below 200km
 		) AS sq ON p.receiver = sq.receiver AND p.distance = sq.distance
 		WHERE p.ts > (NOW() - INTERVAL '1 hour')::DATE
 		GROUP BY 1, 2
