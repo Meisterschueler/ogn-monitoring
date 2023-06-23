@@ -17,7 +17,6 @@ CREATE TABLE IF NOT EXISTS unknowns (
 
 CREATE TABLE IF NOT EXISTS positions (
     "ts"                TIMESTAMPTZ NOT NULL,
-    raw_message         TEXT,
 
     -- APRS message body
     src_call            VARCHAR(9) NOT NULL,
@@ -26,16 +25,10 @@ CREATE TABLE IF NOT EXISTS positions (
 
     -- APRS position message
     receiver_time       VARCHAR(7) NOT NULL,
-    messaging_supported BOOLEAN,
-    latitude            DOUBLE PRECISION NOT NULL,
-    longitude           DOUBLE PRECISION NOT NULL,
     symbol_table        CHAR NOT NULL,
     symbol_code         CHAR NOT NULL,
-    comment             TEXT,
 
     -- parsed APRS position comment
-    additional_lat      SMALLINT,
-    additional_lon      SMALLINT,
     course              SMALLINT,
     speed               SMALLINT,
     altitude            INTEGER,
@@ -74,7 +67,6 @@ CREATE INDEX idx_positions_src_call ON positions (src_call, ts);
 
 CREATE TABLE IF NOT EXISTS statuses (
     "ts"                TIMESTAMPTZ NOT NULL,
-    raw_message         TEXT,
 
     -- APRS message body
     src_call            VARCHAR(9) NOT NULL,
@@ -83,7 +75,6 @@ CREATE TABLE IF NOT EXISTS statuses (
 
 	-- APRS status message
     receiver_time       VARCHAR(7) NOT NULL,
-    comment             TEXT,
 
 	-- parsed APRS status comment
     version             TEXT,
