@@ -13,7 +13,7 @@ WITH plausibilities AS (
 		ts,
 
 		CASE
-			WHEN distance IS NULL OR altitude IS NULL OR receiver_ts_jump OR receiver_ts_duplicate THEN -1
+			WHEN distance IS NULL OR altitude IS NULL OR normalized_quality IS NULL OR receiver_ts_jump OR receiver_ts_duplicate THEN -1
 			ELSE
 				0
 				+ CASE WHEN vertical_jump = TRUE OR horizontal_jump = TRUE THEN 1 ELSE 0 END
@@ -37,6 +37,9 @@ WITH plausibilities AS (
 				  
 				+ CASE WHEN fake_distance_range > 0 THEN 1024 ELSE 0 END
 				+ CASE WHEN fake_distance_receiver_range > 0 THEN 2048 ELSE 0 END
+				
+				+ CASE WHEN fake_normalized_quality_range > 0 THEN 4096 ELSE 0 END
+				+ CASE WHEN fake_normalized_quality_receiver_range > 0 THEN 8192 ELSE 0 END
 				
 		END AS value
 	FROM (
@@ -86,6 +89,10 @@ WITH plausibilities AS (
 			-- distance plausibility
 			COUNT(*) FILTER (WHERE distance >= 1000000) OVER (PARTITION BY src_call ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS fake_distance_range,
 			COUNT(*) FILTER (WHERE distance >= 1000000) OVER (PARTITION BY src_call, receiver ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS fake_distance_receiver_range,
+
+			-- normalized_quality plausibility
+			COUNT(*) FILTER (WHERE normalized_quality >= 50) OVER (PARTITION BY src_call ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS fake_normalized_quality_range,
+			COUNT(*) FILTER (WHERE normalized_quality >= 50) OVER (PARTITION BY src_call, receiver ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS fake_normalized_quality_receiver_range,
 
 			-- receiver_ts plausibility
 			ABS(EXTRACT(epoch FROM ts - receiver_ts)) > 300 AS receiver_ts_jump,
