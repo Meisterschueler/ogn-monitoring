@@ -1,5 +1,5 @@
--- 5m statistics
-CREATE MATERIALIZED VIEW positions_5m
+-- sender position statistics
+CREATE MATERIALIZED VIEW sender_positions_5m
 WITH (timescaledb.continuous, timescaledb.materialized_only = TRUE)
 AS
 SELECT
@@ -11,26 +11,24 @@ SELECT
 
 	FIRST(ts, ts) AS first_position,
 	LAST(ts, ts) AS last_position,
-	MAX(normalized_quality) AS normalized_quality,
-	MAX(distance) AS distance,
+	MIN(distance) AS distance_min,
+	MAX(distance) AS distance_max,
 	MIN(altitude) AS altitude_min,
 	MAX(altitude) AS altitude_max,
+	MIN(normalized_quality) AS normalized_quality_min,
+	MAX(normalized_quality) AS normalized_quality_max,
 
-	COUNT(*) FILTER (WHERE COALESCE(error, 0) <= 5 AND COALESCE(normalized_quality, 0) <= 50 AND COALESCE(distance, 0) <= 640000 AND bearing IS NOT NULL AND course IS NOT NULL AND COALESCE(speed, 0) >= 5 AND (ABS(COALESCE(climb_rate, 0)) >= 2000 OR ABS(COALESCE(turn_rate, 0)) * speed >= 30)) AS points_dynamic,
-	COUNT(*) FILTER (WHERE COALESCE(error, 0) <= 5 AND COALESCE(normalized_quality, 0) <= 50 AND COALESCE(distance, 0) <= 640000 AND bearing IS NOT NULL AND course IS NOT NULL AND COALESCE(speed, 0) >= 5 AND ABS(COALESCE(climb_rate, 0)) < 2000 AND ABS(COALESCE(turn_rate, 0)) * speed < 30) AS points_motion,
-	COUNT(*) FILTER (WHERE COALESCE(error, 0) <= 5 AND COALESCE(normalized_quality, 0) <= 50 AND COALESCE(distance, 0) <= 640000 AND (bearing IS NULL OR course IS NULL OR COALESCE(speed, 0) < 5)) AS points_static,
-	COUNT(*) FILTER (WHERE COALESCE(error, 0) <= 5 AND (COALESCE(normalized_quality, 0) > 50 OR COALESCE(distance, 0) > 640000)) AS points_fake,
-	COUNT(*) FILTER (WHERE COALESCE(error, 0) > 5) AS points_error,
 	COUNT(*) AS points_total
 FROM positions
 WHERE
 	src_call NOT LIKE 'RND%'
 	AND dst_call IN ('APRS', 'OGFLR', 'OGNFNT', 'OGNTRK')
 	AND receiver NOT LIKE 'GLIDERN%'
+	AND plausibility IS NOT NULL
 GROUP BY 1, 2, 3, 4, 5
 WITH NO DATA;
 
-CREATE MATERIALIZED VIEW positions_1h
+CREATE MATERIALIZED VIEW sender_positions_1h
 WITH (timescaledb.continuous, timescaledb.materialized_only = TRUE)
 AS
 SELECT
@@ -42,23 +40,19 @@ SELECT
 
 	FIRST(first_position, ts) AS first_position,
 	LAST(last_position, ts) AS last_position,
-	MAX(normalized_quality) AS normalized_quality,
-	MAX(distance) AS distance,
+	MIN(distance_min) AS distance_min,
+	MAX(distance_max) AS distance_max,
 	MIN(altitude_min) AS altitude_min,
 	MAX(altitude_max) AS altitude_max,
+	MIN(normalized_quality_min) AS normalized_quality_min,
+	MAX(normalized_quality_max) AS normalized_quality_max,
 
-	SUM(points_dynamic) AS points_dynamic,
-	SUM(points_motion) AS points_motion,
-	SUM(points_static) AS points_static,
-	SUM(points_fake) AS points_fake,
-	SUM(points_error) AS points_error,
 	SUM(points_total) AS points_total
-
-FROM positions_5m
+FROM sender_positions_5m
 GROUP BY 1, 2, 3, 4, 5
 WITH NO DATA;
 
-CREATE MATERIALIZED VIEW positions_1d
+CREATE MATERIALIZED VIEW sender_positions_1d
 WITH (timescaledb.continuous)
 AS
 SELECT
@@ -70,19 +64,15 @@ SELECT
 
 	FIRST(first_position, ts) AS first_position,
 	LAST(last_position, ts) AS last_position,
-	MAX(normalized_quality) AS normalized_quality,
-	MAX(distance) AS distance,
+	MIN(distance_min) AS distance_min,
+	MAX(distance_max) AS distance_max,
 	MIN(altitude_min) AS altitude_min,
 	MAX(altitude_max) AS altitude_max,
+	MIN(normalized_quality_min) AS normalized_quality_min,
+	MAX(normalized_quality_max) AS normalized_quality_max,
 
-	SUM(points_dynamic) AS points_dynamic,
-	SUM(points_motion) AS points_motion,
-	SUM(points_static) AS points_static,
-	SUM(points_fake) AS points_fake,
-	SUM(points_error) AS points_error,
 	SUM(points_total) AS points_total
-
-FROM positions_1h
+FROM sender_positions_1h
 GROUP BY 1, 2, 3, 4, 5
 WITH NO DATA;
 
@@ -110,8 +100,33 @@ WHERE normalized_quality IS NOT NULL AND points_motion > 10
 GROUP BY time_bucket('1 day', ts), receiver
 WITH NO DATA;
 
--- direction statistics 1d
-CREATE MATERIALIZED VIEW direction_statistics_1d
+-- sender direction statistics
+CREATE MATERIALIZED VIEW sender_directions_1h
+WITH (timescaledb.continuous, timescaledb.materialized_only = TRUE)
+AS
+SELECT
+	time_bucket('1 hour', ts) AS ts,
+	src_call,
+	receiver,
+	plausibility,
+	CAST(((CAST(bearing AS INTEGER) + 15 + 180) % 360) / 30 AS INTEGER) * 30 AS radial,
+	CAST(((CAST(bearing AS INTEGER) + 15 - course + 360) % 360) / 30 AS INTEGER) * 30 AS relative_bearing,
+	
+	MAX(distance) AS distance,
+	MAX(normalized_quality) AS normalized_quality,
+	
+	COUNT(*) AS points_total
+FROM positions
+WHERE
+	src_call NOT LIKE 'RND%'
+	AND dst_call IN ('APRS', 'OGFLR', 'OGNFNT', 'OGNTRK')
+	AND receiver NOT LIKE 'GLIDERN%'
+	AND plausibility IS NOT NULL
+	AND bearing IS NOT NULL AND course IS NOT NULL AND COALESCE(speed, 0) >= 5 AND ABS(COALESCE(climb_rate, 0)) < 2000 AND ABS(COALESCE(turn_rate, 0)) * speed < 30
+GROUP BY 1, 2, 3, 4, 5, 6
+WITH NO DATA;
+
+CREATE MATERIALIZED VIEW sender_directions_1d
 WITH (timescaledb.continuous, timescaledb.materialized_only = TRUE)
 AS
 SELECT
@@ -121,12 +136,11 @@ SELECT
 	plausibility,
 	radial,
 	relative_bearing,
-
-	MAX(normalized_quality) AS normalized_quality,
+	
 	MAX(distance) AS distance,
-
+	MAX(normalized_quality) AS normalized_quality,
+	
 	SUM(points_total) AS points_total
-
-FROM direction_statistics_1h
+FROM sender_directions_1h
 GROUP BY 1, 2, 3, 4, 5, 6
 WITH NO DATA;
