@@ -76,6 +76,49 @@ FROM sender_positions_1h
 GROUP BY 1, 2, 3, 4, 5
 WITH NO DATA;
 
+-- receiver position statistics
+CREATE MATERIALIZED VIEW receiver_positions_1h
+WITH (timescaledb.continuous, timescaledb.materialized_only = TRUE)
+AS
+SELECT
+	time_bucket('1 hour', ts) AS ts,
+	src_call,
+	dst_call,
+	
+	LAST(altitude, ts) AS altitude,
+	LAST(location, ts) AS location,
+	MIN(altitude) = MAX(altitude) AS altitude_is_stable,
+	MIN(location) = MAX(location) AS location_is_stable,
+
+	COUNT(*) AS points_total
+FROM positions
+WHERE
+	src_call NOT LIKE 'RND%'
+	AND dst_call IN ('APRS', 'OGNFNT', 'OGNSDR')
+	AND receiver LIKE 'GLIDERN%'
+	AND location IS NOT NULL
+	AND altitude IS NOT NULL
+GROUP BY 1, 2, 3
+WITH NO DATA;
+
+CREATE MATERIALIZED VIEW receiver_positions_1d
+WITH (timescaledb.continuous, timescaledb.materialized_only = TRUE)
+AS
+SELECT
+	time_bucket('1 day', ts) AS ts,
+	src_call,
+	dst_call,
+	
+	LAST(altitude, ts) AS altitude,
+	LAST(location, ts) AS location,
+	MIN(CAST(altitude_is_stable AS INTEGER)) = MAX(CAST(altitude_is_stable AS INTEGER)) AND MIN(altitude) = MAX(altitude) AS altitude_is_stable,
+	MIN(CAST(location_is_stable AS INTEGER)) = MAX(CAST(location_is_stable AS INTEGER)) AND MIN(location) = MAX(location) AS location_is_stable,
+
+	SUM(points_total) AS points_total
+FROM receiver_positions_1h
+GROUP BY 1, 2, 3
+WITH NO DATA;
+
 CREATE MATERIALIZED VIEW quality_statistics_1d
 WITH (timescaledb.continuous)
 AS

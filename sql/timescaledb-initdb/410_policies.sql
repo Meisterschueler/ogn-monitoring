@@ -22,6 +22,22 @@ SELECT add_continuous_aggregate_policy('sender_positions_1d',
 ALTER MATERIALIZED VIEW sender_positions_1d SET (timescaledb.compress = true);
 SELECT add_compression_policy('sender_positions_1d', compress_after => INTERVAL '3 days');
 
+SELECT add_continuous_aggregate_policy('receiver_positions_1h',
+  start_offset => INTERVAL '2 hours',
+  end_offset => NULL,
+  initial_start => '2000-01-01 00:05:00'::TIMESTAMPTZ,
+  schedule_interval => INTERVAL '1 hour');
+ALTER MATERIALIZED VIEW receiver_positions_1h SET (timescaledb.compress = true);
+SELECT add_compression_policy('receiver_positions_1h', compress_after => INTERVAL '3 hours');
+
+SELECT add_continuous_aggregate_policy('receiver_positions_1d',
+  start_offset => INTERVAL '2 days',
+  end_offset => NULL,
+  initial_start => '2000-01-01 00:10:00'::TIMESTAMPTZ,
+  schedule_interval => INTERVAL '1 hour');
+ALTER MATERIALIZED VIEW receiver_positions_1d SET (timescaledb.compress = true);
+SELECT add_compression_policy('receiver_positions_1d', compress_after => INTERVAL '3 days');
+
 SELECT add_continuous_aggregate_policy('sender_directions_1h',
   start_offset => INTERVAL '2 days',
   end_offset => NULL,
