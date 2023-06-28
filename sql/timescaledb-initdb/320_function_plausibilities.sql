@@ -16,30 +16,30 @@ WITH plausibilities AS (
 			WHEN distance IS NULL OR altitude IS NULL OR normalized_quality IS NULL OR receiver_ts_jump OR receiver_ts_duplicate THEN -1
 			ELSE
 				0
-				+ CASE WHEN vertical_jump = TRUE OR horizontal_jump = TRUE THEN 1 ELSE 0 END
-				+ CASE WHEN vertical_receiver_jump = TRUE OR horizontal_receiver_jump = TRUE THEN 2 ELSE 0 END
+				+ CASE WHEN vertical_jumps > 0 THEN 1 ELSE 0 END
+				+ CASE WHEN vertical_receiver_jumps > 0 THEN 2 ELSE 0 END
 
-				+ CASE WHEN vertical_jumps_range > 0 OR horizontal_jumps_range > 0 THEN 4 ELSE 0 END
-				+ CASE WHEN vertical_receiver_jumps_range > 0 OR horizontal_receiver_jumps_range > 0 THEN 8 ELSE 0 END
+				+ CASE WHEN horizontal_jumps > 0 THEN 4 ELSE 0 END
+				+ CASE WHEN horizontal_receiver_jumps > 0 THEN 8 ELSE 0 END
 
-				+ CASE WHEN messages_range = 1 THEN 16 ELSE 0 END
-				+ CASE WHEN messages_receiver_range = 1 THEN 32 ELSE 0 END
+				+ CASE WHEN messages = 1 THEN 16 ELSE 0 END
+				+ CASE WHEN messages_receiver = 1 THEN 32 ELSE 0 END
 
-				+ CASE WHEN receivers_confirming_range = 1 THEN 64 ELSE 0 END
+				+ CASE WHEN receivers_confirming = 1 THEN 64 ELSE 0 END
 				+ CASE WHEN receivers_confirming_point = 1 THEN 128 ELSE 0 END
 				+ CASE WHEN receivers_confirming_location = 1 THEN 256 ELSE 0 END
 
 				+ CASE
-					WHEN receivers_confirming_location = 1 AND receivers_confirming_location_range >= 1 THEN 0
-					WHEN receivers_confirming_location > 1 AND receivers_confirming_location_range >= 2 THEN 0
+					WHEN receivers_confirming_location = 1 AND receivers_confirming_location_count >= 1 THEN 0
+					WHEN receivers_confirming_location > 1 AND receivers_confirming_location_count >= 2 THEN 0
 					ELSE 512
 				  END
 				  
-				+ CASE WHEN fake_distance_range > 0 THEN 1024 ELSE 0 END
-				+ CASE WHEN fake_distance_receiver_range > 0 THEN 2048 ELSE 0 END
+				+ CASE WHEN fake_distance > 0 THEN 1024 ELSE 0 END
+				+ CASE WHEN fake_distance_receiver > 0 THEN 2048 ELSE 0 END
 				
-				+ CASE WHEN fake_normalized_quality_range > 0 THEN 4096 ELSE 0 END
-				+ CASE WHEN fake_normalized_quality_receiver_range > 0 THEN 8192 ELSE 0 END
+				+ CASE WHEN fake_normalized_quality > 0 THEN 4096 ELSE 0 END
+				+ CASE WHEN fake_normalized_quality_receiver > 0 THEN 8192 ELSE 0 END
 				
 		END AS value
 	FROM (
@@ -62,37 +62,31 @@ WITH plausibilities AS (
 			normalized_quality,
 			location,
 
-			-- point jumps
-			vertical_jump_prev OR vertical_jump_next AS vertical_jump,
-			horizontal_jump_prev OR horizontal_jump_next AS horizontal_jump,
-			vertical_receiver_jump_prev OR vertical_receiver_jump_next AS vertical_receiver_jump,
-			horizontal_receiver_jump_prev OR horizontal_receiver_jump_next AS horizontal_receiver_jump,
+			-- jumps
+			SUM(CAST(vertical_jump_prev OR vertical_jump_next AS INT)) OVER (PARTITION BY src_call ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS vertical_jumps,
+			SUM(CAST(horizontal_jump_prev OR horizontal_jump_next AS INT)) OVER (PARTITION BY src_call ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS horizontal_jumps,
+			SUM(CAST(vertical_receiver_jump_prev OR vertical_receiver_jump_next AS INT)) OVER (PARTITION BY src_call, receiver ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS vertical_receiver_jumps,
+			SUM(CAST(horizontal_receiver_jump_prev OR horizontal_receiver_jump_next AS INT)) OVER (PARTITION BY src_call, receiver ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS horizontal_receiver_jumps,
 
-			-- range jumps
-			SUM(CAST(vertical_jump_prev OR vertical_jump_next AS INT)) OVER (PARTITION BY src_call ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS vertical_jumps_range,
-			SUM(CAST(horizontal_jump_prev OR horizontal_jump_next AS INT)) OVER (PARTITION BY src_call ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS horizontal_jumps_range,
-			SUM(CAST(vertical_receiver_jump_prev OR vertical_receiver_jump_next AS INT)) OVER (PARTITION BY src_call, receiver ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS vertical_receiver_jumps_range,
-			SUM(CAST(horizontal_receiver_jump_prev OR horizontal_receiver_jump_next AS INT)) OVER (PARTITION BY src_call, receiver ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS horizontal_receiver_jumps_range,
-
-			-- messages count over range
-			COUNT(*) OVER (PARTITION BY src_call ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS messages_range,
-			COUNT(*) OVER (PARTITION BY src_call, receiver ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS messages_receiver_range,
+			-- messages count
+			COUNT(*) OVER (PARTITION BY src_call ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS messages,
+			COUNT(*) OVER (PARTITION BY src_call, receiver ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS messages_receiver,
 
 			-- confirmations of the current message
-			receivers_confirming_range,
+			receivers_confirming,
 			receivers_confirming_point,
 			receivers_confirming_location,
 
-			-- count of message location confirmations in the time range (5 minutes)
-			COUNT(*) FILTER (WHERE receivers_confirming_location > 1) OVER (PARTITION BY src_call ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS receivers_confirming_location_range,
+			-- count of message location confirmations
+			COUNT(*) FILTER (WHERE receivers_confirming_location > 1) OVER (PARTITION BY src_call ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS receivers_confirming_location_count,
 
 			-- distance plausibility
-			COUNT(*) FILTER (WHERE distance >= 1000000) OVER (PARTITION BY src_call ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS fake_distance_range,
-			COUNT(*) FILTER (WHERE distance >= 1000000) OVER (PARTITION BY src_call, receiver ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS fake_distance_receiver_range,
+			COUNT(*) FILTER (WHERE distance >= 1000000) OVER (PARTITION BY src_call ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS fake_distance,
+			COUNT(*) FILTER (WHERE distance >= 1000000) OVER (PARTITION BY src_call, receiver ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS fake_distance_receiver,
 
 			-- normalized_quality plausibility
-			COUNT(*) FILTER (WHERE normalized_quality >= 50) OVER (PARTITION BY src_call ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS fake_normalized_quality_range,
-			COUNT(*) FILTER (WHERE normalized_quality >= 50) OVER (PARTITION BY src_call, receiver ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS fake_normalized_quality_receiver_range,
+			COUNT(*) FILTER (WHERE normalized_quality >= 50) OVER (PARTITION BY src_call ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS fake_normalized_quality,
+			COUNT(*) FILTER (WHERE normalized_quality >= 50) OVER (PARTITION BY src_call, receiver ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING) AS fake_normalized_quality_receiver,
 
 			-- receiver_ts plausibility
 			ABS(EXTRACT(epoch FROM ts - receiver_ts)) > 300 AS receiver_ts_jump,
@@ -163,7 +157,7 @@ WITH plausibilities AS (
 				-- how many receivers see the sender in the time range (5 min)
 				MAX(receiver_rank_range) OVER (PARTITION BY src_call ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING)
 					- MIN(receiver_rank_range) OVER (PARTITION BY src_call ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING)
-					+ 1 AS receivers_confirming_range,
+					+ 1 AS receivers_confirming,
 
 				-- in the same timestamp
 				MAX(receiver_rank_point) OVER (PARTITION BY src_call, receiver_ts ORDER BY receiver_ts RANGE BETWEEN INTERVAL ''5 minutes'' PRECEDING AND INTERVAL ''5 minutes'' FOLLOWING)
