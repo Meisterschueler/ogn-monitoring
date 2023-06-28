@@ -303,34 +303,45 @@ CREATE INDEX ON registration_joined(registration, address);
 -- Create normalized sender qualities
 CREATE MATERIALIZED VIEW senders_relative_qualities
 AS
-SELECT
-	time_bucket('1 day', p1d.ts) AS ts,
-	p1d.src_call,
-	
-	AVG(p1d.normalized_quality - sq.normalized_quality) AS relative_quality,
-	SUM(CASE WHEN p1d.normalized_quality < sq.percentile_10 THEN 1 ELSE 0 END) AS reporting_below_10,
-	COUNT(*) AS total
-FROM positions_1d AS p1d
-INNER JOIN (
+WITH qualities
+AS (
 	SELECT
 		time_bucket('1 day', ts) AS ts,	
 		receiver,
+		src_call,
 
-		AVG(normalized_quality) AS normalized_quality,
-		COUNT(DISTINCT src_call) AS senders_count,
-		percentile_disc(0.1) WITHIN GROUP (order by normalized_quality) AS percentile_10,
-		percentile_disc(0.2) WITHIN GROUP (order by normalized_quality) AS percentile_20,
-		percentile_disc(0.3) WITHIN GROUP (order by normalized_quality) AS percentile_30,
-		percentile_disc(0.4) WITHIN GROUP (order by normalized_quality) AS percentile_40,
-		percentile_disc(0.5) WITHIN GROUP (order by normalized_quality) AS percentile_50,
-		percentile_disc(0.6) WITHIN GROUP (order by normalized_quality) AS percentile_60,
-		percentile_disc(0.7) WITHIN GROUP (order by normalized_quality) AS percentile_70,
-		percentile_disc(0.8) WITHIN GROUP (order by normalized_quality) AS percentile_80,
-		percentile_disc(0.9) WITHIN GROUP (order by normalized_quality) AS percentile_90
-	FROM positions_1d
-	WHERE normalized_quality IS NOT NULL AND points_motion > 10
+		MAX(normalized_quality_max) AS normalized_quality_max,
+		SUM(points_total) AS points_total
+	FROM sender_positions_1d
+	WHERE
+		normalized_quality_max IS NOT NULL
+		AND plausibility IS NOT NULL
+		AND plausibility != -1
+		AND plausibility & b'11110000111111'::integer = 0 -- no jumps, no singles, no fakes
+	GROUP BY 1, 2, 3
+)
+
+SELECT
+	q.ts,
+	q.src_call,
+	
+	AVG(q.normalized_quality_max - sq.normalized_quality) AS relative_quality,
+	SUM(CASE WHEN q.normalized_quality_max < sq.percentile_10 THEN 1 ELSE 0 END) AS reporting_below_10,
+	SUM(q.points_total) AS points_total,
+	COUNT(*) AS total
+FROM qualities AS q
+INNER JOIN (
+	SELECT
+		ts,
+		receiver,
+
+		AVG(normalized_quality_max) AS normalized_quality,
+		COUNT(*) AS senders_count,
+		SUM(points_total) AS points_total,
+		PERCENTILE_DISC(0.1) WITHIN GROUP (ORDER BY normalized_quality_max) AS percentile_10
+	FROM qualities
 	GROUP BY 1, 2
-) AS sq ON sq.ts = p1d.ts AND sq.receiver = p1d.receiver
+) AS sq ON q.ts = sq.ts AND q.receiver = sq.receiver
 GROUP BY 1, 2;
 
 -- Create receiver view with ALL relevant informations
