@@ -466,6 +466,10 @@ FROM (
 				) AS sq2
 			) AS days_and_receivers
 			LEFT JOIN records_1d AS r1d ON r1d.ts = days_and_receivers.ts AND r1d.receiver = days_and_receivers.receiver
+			LEFT JOIN receiver_positions_1d AS rp1d ON rp1d.ts = days_and_receivers.ts AND rp1d.src_call = days_and_receivers.receiver
+			WHERE
+				COALESCE(rp1d.location_is_stable, TRUE) IS TRUE
+				AND COALESCE(rp1d.altitude_is_stable, TRUE) IS TRUE
 		) AS sq2
 		INNER JOIN receivers AS r ON sq2.receiver = r.name
 	) AS sq3
