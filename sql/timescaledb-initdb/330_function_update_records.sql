@@ -29,7 +29,13 @@ BEGIN
 				AND (
 					(
 						ts > '2023-06-19 08:00:00'
-						AND plausibility & b'110000111111'::int = 0	-- no jumps, no singles, no fakes
+						--AND plausibility & b'00000000000001'::int = 0	-- no vertical jumps
+						AND plausibility & b'00000000000010'::int = 0	-- no vertical receiver jumps
+						AND plausibility & b'00000000000100'::int = 0	-- no horizontal jumps
+						AND plausibility & b'00000000001000'::int = 0	-- no horizontal receiver jumps
+						AND plausibility & b'00000000110000'::int = 0	-- no singles
+						AND plausibility & b'00110000000000'::int = 0	-- no distance fakes
+						AND plausibility & b'11000000000000'::int = 0	-- no signal quality fakes
 						AND (
 							   plausibility & b'000111000000'::int = 0	-- direct confirmation
 							OR plausibility & b'001000000000'::int = 0	-- indirect confirmation
