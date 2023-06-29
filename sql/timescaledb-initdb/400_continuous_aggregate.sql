@@ -89,6 +89,8 @@ SELECT
 	LAST(location, ts) AS location,
 	MIN(altitude) = MAX(altitude) AS altitude_is_stable,
 	MIN(location) = MAX(location) AS location_is_stable,
+	MAX(altitude) BETWEEN -1500 AND 15000 AS altitude_is_plausible,
+	SUM(CASE WHEN ST_X(location) = 0 AND ST_Y(location) = 0 THEN 1 ELSE 0 END) = 0 AS location_is_plausible,
 
 	COUNT(*) AS points_total
 FROM positions
@@ -113,6 +115,8 @@ SELECT
 	LAST(location, ts) AS location,
 	MIN(CAST(altitude_is_stable AS INTEGER)) = MAX(CAST(altitude_is_stable AS INTEGER)) AND MIN(altitude) = MAX(altitude) AS altitude_is_stable,
 	MIN(CAST(location_is_stable AS INTEGER)) = MAX(CAST(location_is_stable AS INTEGER)) AND MIN(location) = MAX(location) AS location_is_stable,
+	MIN(CAST(altitude_is_plausible AS INTEGER)) = 1 AS altitude_is_plausible,
+	MIN(CAST(location_is_plausible AS INTEGER)) = 1 AS location_is_plausible,
 
 	SUM(points_total) AS points_total
 FROM receiver_positions_1h

@@ -481,6 +481,8 @@ FROM (
 			WHERE
 				COALESCE(rp1d.location_is_stable, TRUE) IS TRUE
 				AND COALESCE(rp1d.altitude_is_stable, TRUE) IS TRUE
+				AND COALESCE(rp1d.location_is_plausible, TRUE) IS TRUE
+				AND COALESCE(rp1d.altitude_is_plausible, TRUE) IS TRUE
 		) AS sq2
 		INNER JOIN receivers AS r ON sq2.receiver = r.name
 	) AS sq3
