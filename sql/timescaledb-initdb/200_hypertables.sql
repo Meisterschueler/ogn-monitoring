@@ -106,67 +106,18 @@ CREATE TABLE IF NOT EXISTS statuses (
 );
 CREATE INDEX idx_statuses_src_call ON statuses (src_call, ts);
 
-CREATE TABLE IF NOT EXISTS receivers (
-    id                  INT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    name                VARCHAR(9) NOT NULL UNIQUE,
-    last_position       TIMESTAMPTZ,
-    last_status         TIMESTAMPTZ,
-
-    location            GEOMETRY(POINT, 4326),
-    altitude            INTEGER,
-
-    version             TEXT,
-    platform            TEXT,
-
-    iso2                VARCHAR(5)
-);
-CREATE INDEX idx_receivers_location ON receivers USING gist (location);
-
-CREATE TABLE IF NOT EXISTS senders (
-    name                VARCHAR(9),
-    last_position       TIMESTAMPTZ,
-    last_status         TIMESTAMPTZ,
-
-    location            GEOMETRY(POINT, 4326),
-    altitude            DOUBLE PRECISION,
-
-    address_type        SMALLINT,
-    aircraft_type       SMALLINT,
-    is_stealth          BOOLEAN,
-    is_notrack          BOOLEAN,
-    address             INTEGER,
-    software_version    DOUBLE PRECISION,
-    hardware_version    SMALLINT,
-    original_address	INTEGER,
-
-    messages            INTEGER
-);
-CREATE UNIQUE INDEX senders_upsert_idx ON senders (name, original_address) NULLS NOT DISTINCT;
-CREATE INDEX idx_senders_location ON senders USING gist (location);
-
-CREATE TABLE IF NOT EXISTS records_1d (
+CREATE TABLE IF NOT EXISTS receiver_status_events (
     "ts"                TIMESTAMPTZ NOT NULL,
-    receiver            VARCHAR(9) NOT NULL,
-	
-	distance            DOUBLE PRECISION,
-	distance_ts         TIMESTAMPTZ NOT NULL,
-	distance_src_call   VARCHAR(9) NOT NULL
-);
-CREATE UNIQUE INDEX records_upsert_idx ON records_1d (ts, receiver);
 
-CREATE TABLE IF NOT EXISTS confirmations_1d (
-    "ts"                TIMESTAMPTZ NOT NULL,
-    receiver1           VARCHAR(9) NOT NULL,
-    receiver2           VARCHAR(9) NOT NULL,
-    altitude_delta      DOUBLE PRECISION,
-	
-    messages            INTEGER
+    src_call            VARCHAR(9) NOT NULL,
+    event               INTEGER,
+    description         TEXT
 );
-CREATE UNIQUE INDEX confirmations_upsert_idx ON confirmations_1d (ts, receiver1, receiver2, altitude_delta);
-
+CREATE INDEX idx_receiver_status_events_src_call ON receiver_status_events (src_call, ts);
 
 -- create hypertables for messages tables
 SELECT create_hypertable('invalids', 'ts', chunk_time_interval => INTERVAL '10 days');
 SELECT create_hypertable('unknowns', 'ts', chunk_time_interval => INTERVAL '10 days');
 SELECT create_hypertable('positions', 'ts', chunk_time_interval => INTERVAL '1 hour');
 SELECT create_hypertable('statuses', 'ts', chunk_time_interval => INTERVAL '10 days');
+SELECT create_hypertable('receiver_status_events', 'ts', chunk_time_interval => INTERVAL '10 days');

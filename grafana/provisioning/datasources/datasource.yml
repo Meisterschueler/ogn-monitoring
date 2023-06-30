@@ -5,11 +5,11 @@ datasources:
   - name: TimescaleDB
     type: postgres
     url: timescaledb:5432
-    database: ogn
-    user: grafanareader
+    database: ${POSTGRES_DB}
+    user: ${GRAFANA_READER_USER}
     isDefault: true
     secureJsonData:
-      password: 'password'
+      password: ${GRAFANA_READER_PASSWORD}
     jsonData:
       sslmode: disable
       maxOpenCons: 0 # eigentlich 'unlimited'

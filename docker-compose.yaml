@@ -106,8 +106,11 @@ services:
       GF_INSTALL_PLUGINS: grafana-worldmap-panel,pr0ps-trackmap-panel,nline-plotlyjs-panel
       GF_AUTH_ANONYMOUS_ENABLED: 'True'
       GF_SERVER_DOMAIN: 'localhost'
-      GF_DATABASE_URL: 'postgres://grafana:password@timescaledb:5432/grafana'
+      GF_DATABASE_URL: 'postgres://${GRAFANA_USER}:${GRAFANA_PASSWORD}@timescaledb:5432/${GRAFANA_DB}'
       GF_PLUGINS_ENABLE_ALPHA: 'True'
+      POSTGRES_DB: ${POSTGRES_DB}
+      GRAFANA_READER_USER: ${GRAFANA_READER_USER}
+      GRAFANA_READER_PASSWORD: ${GRAFANA_READER_PASSWORD}
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning
       - ./grafana/dashboards:/var/lib/grafana/dashboards

@@ -11,7 +11,27 @@ EXECUTE '
 WITH plausibilities AS (
 	SELECT
 		ts,
+		src_call,
+		dst_call,
+		receiver,
 
+		-- plausibility is a bit-coded value. For this value a time range of +-5min. around the message is analyzed
+		--
+		--    -1: distance or altitude or normalized_quality is null or receiver_ts is not plausible (jump > 5min relative to ts or duplicate receiver_ts)
+		-- bit 0: vertical jump (>300ft/s) (since the altitude of many receivers is not correct this may happen :-( )
+		-- bit 1: vertical jump reported from same receiver
+		-- bit 2: horizonal jump (>300m/s)
+		-- bit 3: horizontal jump reported from same receiver
+		-- bit 4: just 1 message received
+		-- bit 5: just 1 message received from same receiver
+		-- bit 6: no message from other receiver
+		-- bit 7: no message from other receiver (same time stamp)
+		-- bit 8: no message from other receiver with same location (same time stamp)
+		-- bit 9: no message from other receiver with same location (different timestamp)
+		-- bit 10: fake distance reported
+		-- bit 11: fake distance reported from same receiver
+		-- bit 12: fake normalized_quality reported
+		-- bit 13: fake normalized_quality reported from same receiver
 		CASE
 			WHEN distance IS NULL OR altitude IS NULL OR normalized_quality IS NULL OR receiver_ts_jump OR receiver_ts_duplicate THEN -1
 			ELSE
@@ -274,7 +294,10 @@ SET plausibility = CAST(plausibilities.value AS SMALLINT)
 FROM plausibilities
 WHERE
 	pos.ts BETWEEN TIMESTAMP''' || lower || ''' AND TIMESTAMP ''' || upper || '''
-	AND pos.ts = plausibilities.ts;
+	AND pos.ts = plausibilities.ts
+	AND pos.src_call = plausibilities.src_call
+	AND pos.dst_call = plausibilities.dst_call
+	AND pos.receiver = plausibilities.receiver;
 ';
 
 	GET DIAGNOSTICS processed_rows = ROW_COUNT;
