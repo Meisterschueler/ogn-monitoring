@@ -1,18 +1,22 @@
 -- 'Continuous' updates
 SELECT cron.schedule('10,25,40,55 * * * *', '-- plausibilisation
     SELECT update_plausibilities(
-		(NOW()-INTERVAL''21 minutes'')::TIMESTAMP, 
+		(NOW()-INTERVAL''26 minutes'')::TIMESTAMP, 
 		(NOW()-INTERVAL''5 minutes'')::TIMESTAMP
 	);
 	SELECT update_records(NOW() - INTERVAL''1 hour'', NOW());
 	SELECT update_confirmations(NOW() - INTERVAL''1 hour'', NOW());
+');
 
-	REFRESH MATERIALIZED VIEW senders;
-	REFRESH MATERIALIZED VIEW receivers;
-	
-	REFRESH MATERIALIZED VIEW senders_joined;
-	REFRESH MATERIALIZED VIEW receivers_joined;
-	REFRESH MATERIALIZED VIEW ranking;
+SELECT cron.schedule('*/15 * * * *', '-- receiver updates
+	REFRESH MATERIALIZED VIEW CONCURRENTLY receivers;
+	REFRESH MATERIALIZED VIEW CONCURRENTLY receivers_joined;
+	REFRESH MATERIALIZED VIEW CONCURRENTLY ranking;
+');
+
+SELECT cron.schedule('*/5 * * * *', '-- sender updates
+	REFRESH MATERIALIZED VIEW CONCURRENTLY senders;
+	REFRESH MATERIALIZED VIEW CONCURRENTLY senders_joined;
 ');
 
 SELECT cron.schedule('*/5 * * * *', '-- receiver event update
@@ -54,5 +58,8 @@ SELECT cron.schedule('*/5 * * * *', '-- receiver event update
 		AND sq2.ts > (SELECT COALESCE(LAST(ts, ts), TIMESTAMP''2000-01-01 00:00:00'') FROM receiver_status_events);
 ');
 
--- 'Daily' updates
-SELECT cron.schedule('10 0 * * *', 'REFRESH MATERIALIZED VIEW senders_relative_qualities;');
+-- hourly updates
+SELECT cron.schedule('10 0 * * *', '-- update relatives
+	REFRESH MATERIALIZED VIEW CONCURRENTLY senders_relative_qualities;
+	REFRESH MATERIALIZED VIEW CONCURRENTLY receivers_relative_qualities;
+');
