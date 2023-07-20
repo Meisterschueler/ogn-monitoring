@@ -144,7 +144,15 @@ SELECT
 		WHEN dj.ddb_registration IS NULL OR fn.registration IS NULL THEN ''
 		WHEN dj.ddb_registration IS NOT NULL AND fn.registration IS NOT NULL AND dj.ddb_registration = fn.registration THEN 'OK'
 		ELSE 'ERROR'
-	END AS check_flarmnet_registration
+	END AS check_flarmnet_registration,
+	CASE
+		WHEN s.is_stealth THEN 'FLARM:STEALTH'
+		WHEN s.is_notrack THEN 'FLARM:NOTRACK'
+		WHEN dj.ddb_is_noident IS NULL THEN 'DDB:UNKNOWN'
+		WHEN dj.ddb_is_noident IS TRUE THEN 'DDB:NOIDENT'
+		WHEN dj.ddb_is_notrack IS TRUE THEN 'DDB:NOTRACK'
+		ELSE 'OK'
+	END AS privacy
 FROM senders AS s
 LEFT JOIN ddb_joined AS dj ON s.address = dj.ddb_address
 LEFT JOIN flarm_hardware AS fh ON s.hardware_version = fh.id
