@@ -24,12 +24,12 @@ SELECT
 	a.name AS airport_name,
 	a.code AS airport_code,
 	a.iso2 AS airport_iso2,
+	iso2_to_emoji(a.iso2) AS airport_flag,
 	a.location AS airport_location,
 	a.altitude AS airport_altitude,
 	a.style AS airport_style,
 	CASE
-		WHEN s.location IS NOT NULL AND a.location IS NOT NULL AND ST_DistanceSphere(s.location, a.location) < 2500
-		THEN ST_DistanceSphere(s.location, a.location)
+		WHEN s.location IS NOT NULL AND a.location IS NOT NULL THEN ST_DistanceSphere(s.location, a.location)
 		ELSE NULL
 	END as airport_distance,
 	degrees(ST_Azimuth(s.location, a.location)) AS airport_radial,
@@ -48,6 +48,7 @@ SELECT
 	q.relative_quality AS quality_relative_quality,
 	1.0 / 10^(-q.relative_quality/20.0) AS quality_relative_range,
 	i.iso2 AS icao24bit_iso2,
+	iso2_to_emoji(i.iso2) AS icao24bit_flag,
 	i.lower_limit AS icao24bit_lower_limit,
 	i.upper_limit AS icao24bit_upper_limit,
 	CASE
@@ -55,6 +56,11 @@ SELECT
 		WHEN i.iso2 IS NOT NULL THEN i.iso2
 		ELSE ''
 	END AS iso2,
+	CASE
+		WHEN dj.registration_iso2 IS NOT NULL THEN iso2_to_emoji(dj.registration_iso2)
+		WHEN i.iso2 IS NOT NULL THEN iso2_to_emoji(i.iso2)
+		ELSE ''
+	END AS flag,
 	CASE
 		WHEN COALESCE(dj.ddb_registration, '') != '' THEN dj.ddb_registration
 		WHEN COALESCE(o.registration, '') != '' THEN o.registration
