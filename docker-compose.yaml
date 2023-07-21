@@ -129,8 +129,35 @@ services:
       - 443:443
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ${DOCKERVOLUMES}/nginx:/var/log/nginx
     networks:
       - monitoring
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    depends_on:
+      - nginx
+    restart: unless-stopped
+    volumes:
+      - ./promtail:/etc/promtail
+      - ${DOCKERVOLUMES}/nginx:/var/log/nginx
+    command: -config.file=/etc/promtail/promtail-config.yaml
+    networks:
+      - monitoring
+
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    restart: unless-stopped
+    ports:
+      - 3100:3100
+    volumes:
+      - ./loki:/etc/loki
+    command: -config.file=/etc/loki/loki-config.yaml
+    networks:
+      - monitoring
+
 
   telegraf:
     image: telegraf:latest
