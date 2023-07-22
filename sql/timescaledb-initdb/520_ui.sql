@@ -182,7 +182,8 @@ CROSS JOIN LATERAL (
 	LIMIT 1
 ) AS a;
 CREATE UNIQUE INDEX senders_joined_idx ON senders_joined(sender_src_call);
-CREATE INDEX idx_senders_joined_airport_iso2_airport_name ON senders_joined (airport_iso2, airport_name);
+CREATE INDEX senders_joined_airport_iso2_airport_name_idx ON senders_joined (airport_iso2, airport_name);
+CREATE INDEX senders_joined_ddb_registration_idx ON senders_joined (ddb_registration);
 
 -- cost: 2s
 CREATE MATERIALIZED VIEW registration_joined
@@ -404,3 +405,4 @@ FROM (
 	) AS sq3
 ) AS sq4;
 CREATE UNIQUE INDEX ranking_idx ON ranking (ts, ranking_global);
+CREATE INDEX ranking_ts_idx ON ranking(ts);
