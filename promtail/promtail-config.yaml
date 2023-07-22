@@ -41,3 +41,22 @@ scrape_configs:
             bytes_sent:
             http_referer:
             http_user_agent:
+
+- job_name: timescaledb
+  static_configs:
+  - targets:
+      - localhost
+    labels:
+      job: timescaledb
+      __path__: /var/log/timescaledb/*log
+  pipeline_stages:
+    - match:
+        selector: '{job="timescaledb"}'
+        stages:
+        - multiline:
+            firstline: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} UTC'
+        - regex:
+            expression: '^(?P<time>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) UTC (?P<message>(?s:.*))$'
+        - labels:
+            time:
+            message:

@@ -14,7 +14,8 @@ services:
       - 5432:5432
     volumes:
       - ./sql/timescaledb-initdb:/docker-entrypoint-initdb.d
-      - ${DOCKERVOLUMES}/timescaledb:/var/lib/postgresql/data
+      - ${DOCKERVOLUMES}/timescaledb/data:/var/lib/postgresql/data
+      - ${DOCKERVOLUMES}/timescaledb/logs:/logs
     healthcheck:
       test: ["CMD-SHELL", "pg_isready"]
       interval: 5s
@@ -24,6 +25,10 @@ services:
       - -cshared_preload_libraries=timescaledb,pg_stat_statements,pg_cron
       - -ccron.database_name=${POSTGRES_DB}
       - -cpg_stat_statements.track=all
+      - -clogging_collector=on
+      - -clog_directory=/logs
+      - -clog_filename=postgresql.log
+      - -clog_statement=all
     networks:
       - monitoring
 
@@ -142,6 +147,7 @@ services:
     volumes:
       - ./promtail:/etc/promtail
       - ${DOCKERVOLUMES}/nginx:/var/log/nginx
+      - ${DOCKERVOLUMES}/timescaledb/logs:/var/log/timescaledb
     command: -config.file=/etc/promtail/promtail-config.yaml
     networks:
       - monitoring
