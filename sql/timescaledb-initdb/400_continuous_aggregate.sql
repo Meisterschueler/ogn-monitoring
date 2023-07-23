@@ -63,7 +63,7 @@ CREATE MATERIALIZED VIEW directions_15m
 WITH (timescaledb.continuous, timescaledb.materialized_only = TRUE)
 AS
 SELECT
-	time_bucket('1 hour', ts) AS ts,
+	time_bucket('15 minutes', ts) AS ts,
 	src_call,
 	receiver,
 	radial,
