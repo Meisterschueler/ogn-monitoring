@@ -164,7 +164,6 @@ services:
     networks:
       - monitoring
 
-
   telegraf:
     image: telegraf:latest
     container_name: telegraf
@@ -176,6 +175,23 @@ services:
       TELEGRAF_PASSWORD: ${TELEGRAF_PASSWORD}
     volumes:
       - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf
+    networks:
+      - monitoring
+
+  nodejs:
+    image: nodejs
+    container_name: nodejs
+    depends_on:
+      - timescaledb
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      NODEJS_USER: ${NODEJS_USER}
+      NODEJS_PASSWORD: ${NODEJS_PASSWORD}
+    volumes:
+      - ./nodejs/app.js:/app/app.js
+    #command: "npm start"
+    command: "node --trace-warnings --watch app.js"  # development...
     networks:
       - monitoring
 

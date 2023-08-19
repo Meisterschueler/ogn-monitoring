@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS flarm_expiry (
 );
 
 CREATE TABLE IF NOT EXISTS flarm_hardware (
-    id                  INTEGER PRIMARY KEY,
+    id                  SERIAL PRIMARY KEY,
     code                TEXT NOT NULL,
     manufacturer        TEXT NOT NULL,
     model               TEXT NOT NULL
@@ -71,4 +71,36 @@ CREATE TABLE IF NOT EXISTS flarmnet (
     registration        TEXT,
     CN                  TEXT,
     radio               TEXT
+);
+
+CREATE TABLE IF NOT EXISTS countries (
+    geom                GEOMETRY(MultiPolygon, 4326),
+    iso_a2_eh           CHARACTER VARYING(3)
+);
+CREATE INDEX IF NOT EXISTS countries_geom_idx ON countries USING GIST(geom);
+
+-- Tables for nodejs container
+CREATE TABLE IF NOT EXISTS measurements (
+    id                  SERIAL PRIMARY KEY,
+    timestamp_upload    TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    ip_address          TEXT,
+
+    receiver            TEXT,
+    timestamp_event     TIMESTAMPTZ,
+    gain                REAL,
+
+    data                REAL[2][]
+);
+
+CREATE TABLE IF NOT EXISTS screenshots (
+    id                  SERIAL PRIMARY KEY,
+    timestamp_upload    TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    ip_address          TEXT,
+    
+    receiver            TEXT,
+    timestamp_event     TIMESTAMPTZ,
+    gain                REAL,
+    
+    port                INTEGER,
+    data                BYTEA
 );

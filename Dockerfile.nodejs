@@ -1,0 +1,9 @@
+FROM node:alpine
+
+WORKDIR /app
+COPY ./nodejs/package*.json ./
+RUN npm install
+COPY ./nodejs/app.js .
+EXPOSE 5000
+
+CMD ["npm", "start"]

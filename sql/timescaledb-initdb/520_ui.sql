@@ -186,46 +186,6 @@ CREATE UNIQUE INDEX senders_joined_idx ON senders_joined(sender_src_call);
 CREATE INDEX senders_joined_airport_iso2_airport_name_idx ON senders_joined (airport_iso2, airport_name);
 CREATE INDEX senders_joined_ddb_registration_idx ON senders_joined (ddb_registration);
 
--- cost: 2s
-CREATE MATERIALIZED VIEW registration_joined
-AS
-SELECT
-  'DDB' AS "source",
-  dj.ddb_address AS "address",
-  dj.ddb_registration AS "registration",
-  dj.ddb_model AS "model"
-FROM ddb_joined AS dj
-
-UNION
-
-SELECT
-  'OpenSky' AS "source",
-  o.address AS "address",
-  o.registration AS "registration",
-  o.model AS "model"
-FROM opensky AS o
-
-UNION
-
-SELECT
-  'WeGlide' AS "source",
-  w.address AS "address",
-  w.registration AS "registration",
-  w.model AS "model"
-FROM weglide AS w
-
-UNION
-
-SELECT
-  'Flarmnet' AS "source",
-  f.address AS "address",
-  f.registration AS "registration",
-  f.model AS "model"
-FROM flarmnet AS f;
-
-CREATE INDEX ON registration_joined(address, registration);
-CREATE INDEX ON registration_joined(registration, address);
-
 -- Create receiver view with ALL relevant informations
 -- cost: 1min
 CREATE MATERIALIZED VIEW receivers_joined

@@ -15,3 +15,10 @@ CREATE USER telegraf WITH PASSWORD 'password';
 
 CREATE DATABASE telegraf;
 ALTER DATABASE telegraf OWNER TO telegraf;
+
+--- create user for nodejs (backend) and give access for table measurements and screenshots
+CREATE USER nodejs WITH PASSWORD 'password';
+
+GRANT ALL PRIVILEGES ON TABLE measurements, screenshots TO nodejs;
+GRANT ALL PRIVILEGES ON SEQUENCE measurements_id_seq, screenshots_id_seq TO nodejs;
+GRANT SELECT ON TABLE receivers TO nodejs;
