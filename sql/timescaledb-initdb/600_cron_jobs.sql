@@ -25,6 +25,6 @@ SELECT cron.schedule('*/5 * * * *', '-- receiver_status_events update
 
 -- hourly updates
 SELECT cron.schedule('10 0 * * *', '-- update relatives
-	REFRESH MATERIALIZED VIEW CONCURRENTLY senders_relative_qualities;
-	REFRESH MATERIALIZED VIEW CONCURRENTLY receivers_relative_qualities;
+	REFRESH MATERIALIZED VIEW CONCURRENTLY sender_relative_qualities;
+	REFRESH MATERIALIZED VIEW CONCURRENTLY receiver_relative_qualities;
 ');
