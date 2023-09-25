@@ -23,8 +23,9 @@ SELECT cron.schedule('*/5 * * * *', '-- receiver_status_events update
 	SELECT update_receiver_status_events(NOW() - INTERVAL''1 hour'', NOW());
 ');
 
--- hourly updates
+-- daily updates
 SELECT cron.schedule('10 0 * * *', '-- update relatives
 	REFRESH MATERIALIZED VIEW CONCURRENTLY sender_relative_qualities;
 	REFRESH MATERIALIZED VIEW CONCURRENTLY receiver_relative_qualities;
+	REFRESH MATERIALIZED VIEW CONCURRENTLY duplicates;
 ');
