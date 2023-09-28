@@ -127,8 +127,12 @@ FROM (
 		SUM(buckets_15m) AS buckets_15m,
 		
 		COUNT(*) OVER (PARTITION BY src_call) AS duplicates
-	FROM sender_position_states_1d
-	WHERE original_address IS NOT NULL
+	FROM sender_position_states_1d AS sps1d
+	LEFT JOIN flarm_expiry AS fe ON sps1d.software_version = fe.version
+	WHERE
+		original_address IS NOT NULL
+		AND fe.version IS NOT NULL
+		AND fe.expiry_date >= sps1d.ts_last
 	GROUP BY 1, 2
 	HAVING SUM(messages) >= 3 AND SUM(buckets_5m) >= 3 AND SUM(buckets_15m) >= 3
 ) AS sq
