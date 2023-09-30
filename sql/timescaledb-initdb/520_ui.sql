@@ -293,6 +293,9 @@ CROSS JOIN LATERAL (
 	LIMIT 1
 ) AS a
 LEFT JOIN countries AS c ON ST_Contains(c.geom, r.location)
+WHERE
+	r.version IS NOT NULL
+	AND r.platform IS NOT NULL
 ORDER BY c.iso_a2_eh, r.src_call;
 CREATE UNIQUE INDEX receivers_joined_idx ON receivers_joined (src_call);
 
