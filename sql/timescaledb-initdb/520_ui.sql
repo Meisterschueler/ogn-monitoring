@@ -47,18 +47,15 @@ SELECT
 	fn.radio AS flarmnet_radio,
 	q.relative_quality AS quality_relative_quality,
 	1.0 / 10^(-q.relative_quality/20.0) AS quality_relative_range,
-	i.iso2 AS icao24bit_iso2,
-	iso2_to_emoji(i.iso2) AS icao24bit_flag,
-	i.lower_limit AS icao24bit_lower_limit,
-	i.upper_limit AS icao24bit_upper_limit,
+	iso2_to_emoji(dj.icao24bit_iso2) AS icao24bit_flag,
 	CASE
 		WHEN dj.registration_iso2 IS NOT NULL THEN dj.registration_iso2
-		WHEN i.iso2 IS NOT NULL THEN i.iso2
+		WHEN dj.icao24bit_iso2 IS NOT NULL THEN dj.icao24bit_iso2
 		ELSE ''
 	END AS iso2,
 	CASE
 		WHEN dj.registration_iso2 IS NOT NULL THEN iso2_to_emoji(dj.registration_iso2)
-		WHEN i.iso2 IS NOT NULL THEN iso2_to_emoji(i.iso2)
+		WHEN dj.icao24bit_iso2 IS NOT NULL THEN iso2_to_emoji(dj.icao24bit_iso2)
 		ELSE ''
 	END AS flag,
 	CASE
@@ -69,95 +66,73 @@ SELECT
 		ELSE ''
 	END AS registration,
 	CASE
+		WHEN COALESCE(dj.ddb_cn, '') != '' THEN dj.ddb_cn
+		WHEN COALESCE(w.cn, '') != '' THEN w.cn
+		WHEN COALESCE(fn.cn, '') != '' THEN fn.cn
+		ELSE ''
+	END AS cn,
+	CASE
 		WHEN COALESCE(dj.ddb_model, '') != '' THEN dj.ddb_model
 		WHEN COALESCE(o.model, '') != '' THEN o.model
 		WHEN COALESCE(w.model, '') != '' THEN w.model
 		WHEN COALESCE(fn.model, '') != '' THEN fn.model
 		ELSE ''
 	END AS model,
+	CASE
+		WHEN s.aircraft_type IS NULL OR dj.ddb_aircraft_types IS NULL THEN ''
+		WHEN s.aircraft_type = ANY(dj.ddb_aircraft_types) THEN 'OK'
+		WHEN dj.ddb_aircraft_types = ARRAY[0] THEN 'GENERIC'
+		ELSE 'ERROR'
+	END AS check_sender_ddb_aircraft_type,
 	CASE 
-		WHEN s.aircraft_type IS NULL THEN ''
-		WHEN dj.registration_aircraft_types IS NULL THEN 'UNKNOWN'
+		WHEN s.aircraft_type IS NULL OR dj.registration_aircraft_types IS NULL THEN ''
 		WHEN s.aircraft_type = ANY(dj.registration_aircraft_types) THEN 'OK'
-		WHEN 0 = ALL(dj.registration_aircraft_types) THEN 'GENERIC'
+		WHEN dj.registration_aircraft_types::integer[] = ARRAY[0] THEN 'GENERIC'
 		ELSE 'ERROR'
-	END AS check_registration_aircraft_types,
+	END AS check_sender_registration_aircraft_type,
 	CASE
-		WHEN 
-			(s.src_call LIKE 'ICA%' OR s.src_call LIKE 'PAW%')
-			AND dj.registration_iso2 IS NOT NULL
-			AND i.iso2 IS NOT NULL
-			AND dj.registration_iso2 != i.iso2
-		THEN 'ERROR'
-		WHEN 
-			(s.src_call LIKE 'ICA%' OR s.src_call LIKE 'PAW%')
-			AND dj.registration_iso2 IS NOT NULL
-			AND i.iso2 IS NOT NULL
-			AND dj.registration_iso2 = i.iso2
-		THEN 'OK'
-		ELSE ''
-	END AS check_iso2,
-	CASE
-		WHEN dj.ddb_model_type IS NULL OR dj.ddb_model IS NULL THEN ''
-		WHEN s.aircraft_type IS NULL THEN 'UNKNOWN'
-		WHEN s.aircraft_type = 1 AND dj.ddb_model_type = 1 THEN 'OK'			-- (moto-)glider -> Gliders/motoGliders
-		WHEN s.aircraft_type = 2 AND dj.ddb_model_type IN (1,2,3) THEN 'OK'		-- tow plane -> Gliders/motoGliders, Planes or Ultralight
-		WHEN s.aircraft_type = 2 AND dj.ddb_model_type = 2 AND dj.ddb_model = 'Towplane' THEN 'OK'	-- Towplane -> Plane::Towplane
-		WHEN s.aircraft_type = 3 AND dj.ddb_model_type = 4 THEN 'OK'			-- helicopter -> Helicopter
-		WHEN s.aircraft_type = 6 AND dj.ddb_model_type = 6 AND dj.ddb_model = 'HangGlider' THEN 'OK'  -- hang-glider -> Others::HangGlider
-		WHEN s.aircraft_type = 7 AND dj.ddb_model_type = 6 AND dj.ddb_model = 'Paraglider' THEN 'OK'  -- para-glider -> Others::Paraglider
-		WHEN s.aircraft_type = 8 AND dj.ddb_model_type IN (2,3) THEN 'OK'		-- powered aircraft -> Planes or Ultralight
-		WHEN s.aircraft_type = 9 AND dj.ddb_model_type = 2 THEN 'OK'			-- jet aircraft -> Planes
-		WHEN s.aircraft_type = 10 AND dj.ddb_model_type = 6 AND dj.ddb_model = 'UFO' THEN 'OK'		-- UFO -> Others::UFO
-		WHEN s.aircraft_type = 11 AND dj.ddb_model_type = 6 AND dj.ddb_model = 'Balloon' THEN 'OK'	-- Balloon -> Others::Balloon
-		WHEN s.aircraft_type = 13 AND dj.ddb_model_type = 5 THEN 'OK'			-- UAV -> Drones/UAV
-		WHEN s.aircraft_type = 14 AND dj.ddb_model_type = 6 AND dj.ddb_model = 'Ground Station' THEN 'OK'	-- ground support -> Others::Ground Station
-		WHEN s.aircraft_type = 15 AND dj.ddb_model_type = 6 AND dj.ddb_model = 'Ground Station' THEN 'OK'	-- static object -> Others::Ground Station
-		ELSE 'ERROR'
-	END AS check_model_type,
-	CASE
-		WHEN dj.ddb_address_type IS NULL THEN ''
-		WHEN s.address_type IS NULL THEN 'UNKNOWN'
+		WHEN s.address_type IS NULL THEN ''
+		WHEN dj.ddb_address_type IS NULL THEN 'UNKNOWN'
 		WHEN s.address_type != dj.ddb_address_type THEN 'ERROR'
 		ELSE 'OK'
-	END AS check_address_type,
+	END AS check_sender_ddb_address_type,
 	CASE
 		WHEN EXISTS (SELECT * FROM duplicates WHERE address = s.address) THEN 'ERROR'
 		ELSE 'OK'
 	END AS check_sender_duplicate,
 	CASE
 		WHEN s.software_version IS NULL THEN ''
-		WHEN s.software_version != NULL AND fe.expiry_date IS NULL THEN 'ERROR'
+		WHEN s.software_version IS NOT NULL AND fe.expiry_date IS NULL THEN 'ERROR'
 		ELSE 'OK'
 	END AS check_sender_software_version_plausible, 
 	CASE
 		WHEN fe.expiry_date IS NULL THEN ''
-		WHEN fe.expiry_date - NOW() > INTERVAL'6 months' THEN 'OK'
-		WHEN fe.expiry_date - NOW() > INTERVAL'2 months' THEN 'WARNING'
-		WHEN fe.expiry_date - NOW() > INTERVAL'1 day' THEN 'DANGER'
-		ELSE 'EXPIRED'
-	END AS check_flarm_expiry_date,
+		WHEN fe.expiry_date - NOW() > INTERVAL'1 month' THEN 'OK'
+		WHEN fe.expiry_date - NOW() > INTERVAL'1 day' THEN 'WARNING'
+		ELSE 'ERROR'
+	END AS check_sender_expiry_date,
 	CASE
 		WHEN dj.ddb_registration IS NULL OR dj.ddb_registration = '' OR o.registration IS NULL OR o.registration = '' THEN ''
 		WHEN dj.ddb_registration IS NOT NULL AND o.registration IS NOT NULL AND dj.ddb_registration = o.registration THEN 'OK'
 		ELSE 'ERROR'
-	END AS check_opensky_registration,
+	END AS check_ddb_opensky_registration,
 	CASE
 		WHEN dj.ddb_registration IS NULL OR w.registration IS NULL THEN ''
 		WHEN dj.ddb_registration IS NOT NULL AND w.registration IS NOT NULL AND dj.ddb_registration = w.registration THEN 'OK'
 		ELSE 'ERROR'
-	END AS check_weglide_registration,
+	END AS check_ddb_weglide_registration,
 	CASE
 		WHEN dj.ddb_registration IS NULL OR fn.registration IS NULL THEN ''
 		WHEN dj.ddb_registration IS NOT NULL AND fn.registration IS NOT NULL AND dj.ddb_registration = fn.registration THEN 'OK'
 		ELSE 'ERROR'
-	END AS check_flarmnet_registration,
+	END AS check_ddb_flarmnet_registration,
 	CASE
 		WHEN s.is_stealth THEN 'FLARM:STEALTH'
 		WHEN s.is_notrack THEN 'FLARM:NOTRACK'
 		WHEN dj.ddb_is_noident IS NULL THEN 'DDB:UNKNOWN'
 		WHEN dj.ddb_is_noident IS TRUE THEN 'DDB:NOIDENT'
 		WHEN dj.ddb_is_notrack IS TRUE THEN 'DDB:NOTRACK'
+		WHEN dj.ddb_registration ~ '^D\-[Xx]{2}.{2}$' THEN 'REG:NOIDENT'
 		ELSE 'OK'
 	END AS privacy
 FROM senders AS s
@@ -175,7 +150,6 @@ LEFT JOIN (
 	WHERE ts > now() - INTERVAL '30 days'
 	GROUP BY 1
 ) AS q ON s.src_call = q.src_call
-LEFT JOIN icao24bit AS i ON s.address BETWEEN lower_limit AND upper_limit
 CROSS JOIN LATERAL (
 	SELECT *
 	FROM openaip

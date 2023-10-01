@@ -51,9 +51,7 @@ SELECT
 	iso2,
 	regex,
 	description,
-	array_agg(array_remove(ARRAY[unknown, glider, tow_plane, helicopter, parachute, drop_plane, hang_glider, para_glider, powered_aircraft, jet_aircraft, ufo, balloon, airship, uav, ground_support, static_object], NULL)) AS aircraft_types
-FROM registrations_import
-GROUP BY iso2, regex, description
+	array_remove(ARRAY[unknown, glider, tow_plane, helicopter, parachute, drop_plane, hang_glider, para_glider, powered_aircraft, jet_aircraft, ufo, balloon, airship, uav, ground_support, static_object], NULL) AS aircraft_types FROM registrations_import
 ORDER BY iso2, regex;
 
 REFRESH MATERIALIZED VIEW ddb_joined;
