@@ -143,11 +143,16 @@ LEFT JOIN opensky AS o ON s.address = o.address
 LEFT JOIN weglide AS w ON s.address = w.address
 LEFT JOIN flarmnet AS fn ON s.address = fn.address
 LEFT JOIN (
-	SELECT
-		src_call,
-		AVG(relative_quality) AS relative_quality
-	FROM sender_relative_qualities
-	WHERE ts > now() - INTERVAL '30 days'
+	SELECT 
+		sq.src_call,
+		SUM(sq.relative_quality * factor) / SUM(factor) AS relative_quality -- older measurements become less important
+	FROM (
+		SELECT
+			src_call,
+			1.0 / row_number() OVER (PARTITION BY src_call ORDER BY ts) AS factor,
+			relative_quality
+		FROM sender_relative_qualities
+	) AS sq
 	GROUP BY 1
 ) AS q ON s.src_call = q.src_call
 CROSS JOIN LATERAL (
