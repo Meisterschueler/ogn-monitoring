@@ -112,17 +112,20 @@ SELECT
 		ELSE 'ERROR'
 	END AS check_sender_expiry_date,
 	CASE
-		WHEN dj.ddb_registration IS NULL OR dj.ddb_registration = '' OR o.registration IS NULL OR o.registration = '' THEN ''
+		WHEN o.registration IS NULL OR o.registration = '' THEN ''
+		WHEN dj.ddb_registration IS NULL OR dj.ddb_registration = '' THEN 'WARNING'
 		WHEN dj.ddb_registration IS NOT NULL AND o.registration IS NOT NULL AND dj.ddb_registration = o.registration THEN 'OK'
 		ELSE 'ERROR'
 	END AS check_ddb_opensky_registration,
 	CASE
-		WHEN dj.ddb_registration IS NULL OR w.registration IS NULL THEN ''
+		WHEN w.registration IS NULL OR w.registration = '' THEN ''
+		WHEN dj.ddb_registration IS NULL OR dj.ddb_registration = '' THEN 'WARNING'
 		WHEN dj.ddb_registration IS NOT NULL AND w.registration IS NOT NULL AND dj.ddb_registration = w.registration THEN 'OK'
 		ELSE 'ERROR'
 	END AS check_ddb_weglide_registration,
 	CASE
-		WHEN dj.ddb_registration IS NULL OR fn.registration IS NULL THEN ''
+		WHEN fn.registration IS NULL OR fn.registration = '' THEN ''
+		WHEN dj.ddb_registration IS NULL OR dj.ddb_registration = '' THEN 'WARNING'
 		WHEN dj.ddb_registration IS NOT NULL AND fn.registration IS NOT NULL AND dj.ddb_registration = fn.registration THEN 'OK'
 		ELSE 'ERROR'
 	END AS check_ddb_flarmnet_registration,
