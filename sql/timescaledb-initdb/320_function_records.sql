@@ -23,7 +23,7 @@ EXECUTE '
         FROM (
             SELECT
                 *,
-                ROW_NUMBER() OVER (PARTITION BY ts::DATE, src_call, receiver ORDER BY distance_max) AS row
+                ROW_NUMBER() OVER (PARTITION BY ts::DATE, src_call, receiver ORDER BY distance_max DESC) AS row
             FROM sender_positions_5m
             WHERE
                 ts BETWEEN TIMESTAMP''' || lower || ''' AND TIMESTAMP''' || upper || '''
