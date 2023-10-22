@@ -315,7 +315,7 @@ SELECT
 FROM (
 	SELECT
 		sq3.*,
-		2 * sq3.distance_max + sq3.distance_avg AS points
+		sq3.distance_max + sq3.distance_avg AS points
 	FROM (
 		SELECT
 			sq2.ts,
