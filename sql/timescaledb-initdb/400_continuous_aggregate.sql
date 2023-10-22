@@ -84,12 +84,11 @@ WHERE
 GROUP BY 1, 2, 3, 4, 5
 WITH NO DATA;
 
-CREATE MATERIALIZED VIEW directions_1d
-WITH (timescaledb.continuous)
+CREATE MATERIALIZED VIEW receiver_directions_1d
+WITH (timescaledb.continuous, timescaledb.materialized_only = TRUE)
 AS
 SELECT
 	time_bucket('1 day', ts) AS ts,
-	src_call,
 	receiver,
 	radial,
 	relative_bearing,
@@ -101,7 +100,26 @@ SELECT
 	SUM(buckets_5m) AS buckets_5m,
 	COUNT(*) AS buckets_15m
 FROM directions_15m
-GROUP BY 1, 2, 3, 4, 5
+GROUP BY 1, 2, 3, 4
+WITH NO DATA;
+
+CREATE MATERIALIZED VIEW sender_directions_1d
+WITH (timescaledb.continuous, timescaledb.materialized_only = TRUE)
+AS
+SELECT
+	time_bucket('1 day', ts) AS ts,
+	src_call,
+	radial,
+	relative_bearing,
+	
+	MAX(distance) AS distance,
+	MAX(normalized_quality) AS normalized_quality,
+	
+	SUM(messages) AS messages,
+	SUM(buckets_5m) AS buckets_5m,
+	COUNT(*) AS buckets_15m
+FROM directions_15m
+GROUP BY 1, 2, 3, 4
 WITH NO DATA;
 
 -- sender position states
