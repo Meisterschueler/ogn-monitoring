@@ -287,14 +287,15 @@ CREATE MATERIALIZED VIEW ranking
 AS
 WITH records AS (
 	SELECT
-		r1d.*
+		r1d.*,
+		rps1d.buckets_15m / (4.*24.) AS online
 	FROM records_1d AS r1d
 	INNER JOIN (
 		SELECT
 			ts,
 			receiver,
 
-			MAX(distance_max) AS distance_max
+			MAX(distance_max) AS distance_max			
 		FROM records_1d
 		WHERE ts > NOW() - INTERVAL '30 days'			-- consider the last 30 days
 		GROUP BY 1, 2
@@ -315,7 +316,7 @@ SELECT
 FROM (
 	SELECT
 		sq3.*,
-		sq3.distance_max + sq3.distance_avg AS points
+		(sq3.distance_max + sq3.distance_avg) * sq3.online AS points
 	FROM (
 		SELECT
 			sq2.ts,
@@ -328,7 +329,8 @@ FROM (
 			sq2.ts_last,
 			sq2.src_call,
 			MAX(COALESCE(sq2.distance_max, 0)) OVER (PARTITION BY sq2.receiver ORDER BY sq2.ts ROWS BETWEEN 30 PRECEDING AND CURRENT ROW) AS distance_max,
-			AVG(COALESCE(sq2.distance_max, 0)) OVER (PARTITION BY sq2.receiver ORDER BY sq2.ts ROWS BETWEEN 30 PRECEDING AND CURRENT ROW) AS distance_avg
+			AVG(COALESCE(sq2.distance_max, 0)) OVER (PARTITION BY sq2.receiver ORDER BY sq2.ts ROWS BETWEEN 30 PRECEDING AND CURRENT ROW) AS distance_avg,
+			AVG(COALESCE(sq2.online, 0)) OVER (PARTITION BY sq2.receiver ORDER BY sq2.ts ROWS BETWEEN 30 PRECEDING AND CURRENT ROW) AS online
 		FROM (
 			SELECT
 				days_and_receivers.ts,
@@ -337,7 +339,8 @@ FROM (
 				r1d.distance_max,
 				r1d.ts_first,
 				r1d.ts_last,
-				r1d.src_call
+				r1d.src_call,
+				r1d.online
 			FROM
 			(
 				SELECT
