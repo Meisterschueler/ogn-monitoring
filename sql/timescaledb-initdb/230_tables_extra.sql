@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS ddb (
 
 CREATE TABLE IF NOT EXISTS flarm_expiry (
     version             DOUBLE PRECISION NOT NULL UNIQUE,
+    release_date        DATE NOT NULL,
     expiry_date         DATE NOT NULL
 );
 
