@@ -135,7 +135,8 @@ SELECT
 		WHEN dj.ddb_is_noident IS NULL THEN 'DDB:UNKNOWN'
 		WHEN dj.ddb_is_noident IS TRUE THEN 'DDB:NOIDENT'
 		WHEN dj.ddb_is_notrack IS TRUE THEN 'DDB:NOTRACK'
-		WHEN dj.ddb_registration ~ '^D\-[Xx].{3}$' THEN 'REG:NOIDENT'
+		WHEN dj.ddb_registration ~ '^[DF]\-[Xx].{3}$' THEN 'REG:NOIDENT'
+		WHEN dj.ddb_registration LIKE 'X-%' THEN 'REG:NOIDENT'
 		WHEN dj.ddb_registration IS NULL AND dj.ddb_model_type in (1,2,3,4) THEN 'REG:NOIDENT'
 		ELSE 'OK'
 	END AS privacy
