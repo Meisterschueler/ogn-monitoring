@@ -28,7 +28,7 @@ services:
       - -clogging_collector=on
       - -clog_directory=/logs
       - -clog_filename=postgresql.log
-      - -clog_statement=all
+      - -clog_statement=ddl
     networks:
       - monitoring
 
