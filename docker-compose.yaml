@@ -64,25 +64,6 @@ services:
     networks:
       - monitoring
 
-#  questdb:
-#    image: questdb/questdb:6.7
-#    container_name: questdb
-#    restart: unless-stopped
-#    ports:
-#      - 9000:9000 # REST API and Web Console
-#      - 9009:9009 # InfluxDB line protocol
-#      - 8812:8812 # Postgres wire protocol
-#      - 9003:9003 # Min health server
-#    environment:
-#      QDB_PG_USER: ${POSTGRES_USER}
-#      QDB_PG_PASSWORD: ${POSTGRES_PASSWORD}
-#      QDB_CAIRO_SQL_COPY_ROOT: /mnt/ogn_logfiles
-#    volumes:
-#      - ./data/questdb:/var/lib/questdb
-#      - ./data/ogn_logfiles:/mnt/ogn_logfiles
-#    networks:
-#      - monitoring
-
   pgadmin:
     image: dpage/pgadmin4
     container_name: pgadmin4

@@ -16,21 +16,13 @@ SELECT add_continuous_aggregate_policy('directions_15m',
 ALTER MATERIALIZED VIEW directions_15m SET (timescaledb.compress = true);
 SELECT add_compression_policy('directions_15m', compress_after => INTERVAL '4 hours');
 
-SELECT add_continuous_aggregate_policy('sender_directions_1d',
+SELECT add_continuous_aggregate_policy('directions_1d',
   start_offset => INTERVAL '8 days',
   end_offset => INTERVAL '1 day',
   initial_start => '2000-01-01 00:05:00'::TIMESTAMPTZ,
   schedule_interval => INTERVAL '1 day');
-ALTER MATERIALIZED VIEW sender_directions_1d SET (timescaledb.compress = true);
-SELECT add_compression_policy('sender_directions_1d', compress_after => INTERVAL '16 days');
-
-SELECT add_continuous_aggregate_policy('receiver_directions_1d',
-  start_offset => INTERVAL '8 days',
-  end_offset => INTERVAL '1 day',
-  initial_start => '2000-01-01 00:05:00'::TIMESTAMPTZ,
-  schedule_interval => INTERVAL '1 day');
-ALTER MATERIALIZED VIEW receiver_directions_1d SET (timescaledb.compress = true);
-SELECT add_compression_policy('receiver_directions_1d', compress_after => INTERVAL '16 days');
+ALTER MATERIALIZED VIEW directions_1d SET (timescaledb.compress = true);
+SELECT add_compression_policy('directions_1d', compress_after => INTERVAL '16 days');
 
 -- sender position states
 SELECT add_continuous_aggregate_policy('sender_position_states_15m',

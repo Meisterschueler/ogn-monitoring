@@ -3,10 +3,10 @@
 ## Features
 - [x] overview of the receivers health state
 - [x] overview of the senders configuration
-- [ ] receiver ranking (global and per country)
-- [ ] sender ranking
-- [ ] detailled receiver analysis
-- [ ] detailled sender analysis
+- [x] receiver ranking (global and per country)
+- [x] detailled receiver analysis
+- [x] detailled sender analysis
+- [x] duplicate FLARM ID recognition
 
 ## Architecture
 

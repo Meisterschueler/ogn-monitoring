@@ -1,6 +1,0 @@
-DROP TABLE IF EXISTS positions CASCADE;
-DROP TABLE IF EXISTS receivers CASCADE;
-DROP TABLE IF EXISTS senders CASCADE;
-DROP TABLE IF EXISTS statistics;
-DROP TABLE IF EXISTS receiver_statistics;
-DROP TABLE IF EXISTS sender_statistics;
