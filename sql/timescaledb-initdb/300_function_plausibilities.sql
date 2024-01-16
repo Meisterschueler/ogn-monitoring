@@ -307,45 +307,8 @@ WHERE
 END;
 $$ LANGUAGE plpgsql;
 
--- this function is for small time ranges (< 1h) ...  
-CREATE OR REPLACE FUNCTION update_plausibilities(start_time TIMESTAMP, end_time TIMESTAMP)
-  RETURNS void
-AS $$
-DECLARE
-  ts TIMESTAMP;
-  ts_execution TIMESTAMP;
-  start_table TEXT;
-  end_table TEXT;
-BEGIN
-	SELECT '_timescaledb_internal.' || chunk_name
-	INTO start_table
-	FROM timescaledb_information.chunks
-	WHERE
-		hypertable_name = 'positions'
-		AND start_time BETWEEN range_start AND range_end;
-
-	SELECT '_timescaledb_internal.' || chunk_name
-	INTO end_table
-	FROM timescaledb_information.chunks
-	WHERE
-		hypertable_name = 'positions'
-		AND end_time BETWEEN range_start AND range_end;
-
-	ts_execution := clock_timestamp();
-	PERFORM update_plausibilities(start_table, start_time, end_time);
-	RAISE WARNING '%s: update_plausibilities executed. table: %s, start_time: %s, end_time: %s', clock_timestamp() - ts_execution, start_table, start_time, end_time;
-
-	IF start_table != end_table THEN
-		ts_execution := clock_timestamp();
-		PERFORM update_plausibilities(end_table, start_time, end_time);
-		RAISE WARNING '%s: update_plausibilities executed. table: %s, start_time: %s, end_time: %s', clock_timestamp() - ts_execution, end_table, start_time, end_time;
-	END IF;
-END;
-$$
-LANGUAGE plpgsql;
-
--- if you want to update a chunk with big time ranges (>> 1h) ... use this function
-CREATE OR REPLACE FUNCTION update_plausibilities_chunks_hourly(table_name TEXT, start_time TIMESTAMP, end_time TIMESTAMP)
+-- convenience function for table 'positions'
+CREATE OR REPLACE FUNCTION update_plausibilities(start_time TIMESTAMP, end_time TIMESTAMP, step INTERVAL)
   RETURNS void
 AS $$
 DECLARE
@@ -356,10 +319,10 @@ BEGIN
   
   WHILE ts < end_time LOOP
   	ts_start := clock_timestamp();
-    PERFORM update_plausibilities(table_name, ts, ts + INTERVAL '1 hour');
+    PERFORM update_plausibilities('positions', ts, ts + step);
 	
-	RAISE WARNING '%s: update_plausibilities executed for timestamp: % - %s', clock_timestamp() - ts_start, ts, ts + INTERVAL '1 hour';
-	ts := ts + INTERVAL '1 hour';
+	RAISE WARNING 'update_plausibilities (% - %s) executed in: %s', ts, ts + step, clock_timestamp() - ts_start;
+	ts := ts + step;
   END LOOP;
 END;
 $$
