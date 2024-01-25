@@ -10,8 +10,8 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-    ports:
-      - 5432:5432
+    expose:
+      - 5432
     volumes:
       - ./sql/timescaledb-initdb:/docker-entrypoint-initdb.d
       - ${DOCKERVOLUMES}/timescaledb/data:/var/lib/postgresql/data
@@ -86,8 +86,8 @@ services:
     depends_on:
       - timescaledb
     restart: unless-stopped
-    ports:
-      - 3000:3000
+    expose:
+      - 3000
     environment:
       GF_INSTALL_PLUGINS: grafana-worldmap-panel,pr0ps-trackmap-panel,nline-plotlyjs-panel
       GF_AUTH_ANONYMOUS_ENABLED: 'True'
@@ -137,8 +137,8 @@ services:
     image: grafana/loki:latest
     container_name: loki
     restart: unless-stopped
-    ports:
-      - 3100:3100
+    expose:
+      - 3100
     volumes:
       - ./loki:/etc/loki
     command: -config.file=/etc/loki/loki-config.yaml
