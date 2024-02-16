@@ -2,7 +2,8 @@
 SELECT cron.schedule('10,25,40,55 * * * *', '-- plausibilisation
     SELECT update_plausibilities(
 		(NOW()-INTERVAL''26 minutes'')::TIMESTAMP, 
-		(NOW()-INTERVAL''5 minutes'')::TIMESTAMP
+		(NOW()-INTERVAL''5 minutes'')::TIMESTAMP,
+		''1 hour''::INTERVAL
 	);
 	SELECT update_records(NOW() - INTERVAL''1 hour'', NOW());
 	SELECT update_confirmations(NOW() - INTERVAL''1 hour'', NOW());
