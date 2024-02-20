@@ -1,6 +1,6 @@
 -- sender position statistics - base for position based sender statistics (records, directions, states)
 CREATE MATERIALIZED VIEW sender_positions_5m
-WITH (timescaledb.continuous, timescaledb.materialized_only = TRUE)
+WITH (timescaledb.continuous)
 AS
 SELECT
 	time_bucket('5 minutes', ts) AS ts,
@@ -60,7 +60,7 @@ WITH NO DATA;
 
 -- direction statistics (sender -> receiver) for polar diagram
 CREATE MATERIALIZED VIEW directions_15m
-WITH (timescaledb.continuous, timescaledb.materialized_only = TRUE)
+WITH (timescaledb.continuous)
 AS
 SELECT
 	time_bucket('15 minutes', ts) AS ts,
@@ -85,7 +85,7 @@ GROUP BY 1, 2, 3, 4, 5
 WITH NO DATA;
 
 CREATE MATERIALIZED VIEW directions_1d
-WITH (timescaledb.continuous)
+WITH (timescaledb.continuous, timescaledb.materialized_only = FALSE)
 AS
 SELECT
 	time_bucket('1 day', ts) AS ts,
@@ -106,7 +106,7 @@ WITH NO DATA;
 
 -- sender position states
 CREATE MATERIALIZED VIEW sender_position_states_15m
-WITH (timescaledb.continuous, timescaledb.materialized_only = TRUE)
+WITH (timescaledb.continuous)
 AS
 SELECT
 	time_bucket('15 minutes', ts) AS ts,
@@ -143,7 +143,7 @@ GROUP BY 1, 2, 3
 WITH NO DATA;
 
 CREATE MATERIALIZED VIEW sender_position_states_1d
-WITH (timescaledb.continuous)
+WITH (timescaledb.continuous, timescaledb.materialized_only = FALSE)
 AS
 SELECT
 	time_bucket('1 day', ts) AS ts,
@@ -182,7 +182,7 @@ WITH NO DATA;
 
 -- receiver position statistics
 CREATE MATERIALIZED VIEW receiver_position_states_15m
-WITH (timescaledb.continuous, timescaledb.materialized_only = TRUE)
+WITH (timescaledb.continuous)
 AS
 SELECT
 	time_bucket('15 minutes', ts) AS ts,
@@ -211,7 +211,7 @@ GROUP BY 1, 2, 3
 WITH NO DATA;
 
 CREATE MATERIALIZED VIEW receiver_position_states_1d
-WITH (timescaledb.continuous)
+WITH (timescaledb.continuous, timescaledb.materialized_only = FALSE)
 AS
 SELECT
 	time_bucket('1 day', ts) AS ts,
@@ -236,7 +236,7 @@ WITH NO DATA;
 
 -- receiver status states
 CREATE MATERIALIZED VIEW receiver_status_states_15m
-WITH (timescaledb.continuous, timescaledb.materialized_only = TRUE)
+WITH (timescaledb.continuous)
 AS
 SELECT
 	time_bucket('15 minutes', ts) AS ts,
@@ -264,7 +264,7 @@ GROUP BY 1, 2
 WITH NO DATA;
 
 CREATE MATERIALIZED VIEW receiver_status_states_1d
-WITH (timescaledb.continuous)
+WITH (timescaledb.continuous, timescaledb.materialized_only = FALSE)
 AS
 SELECT
 	time_bucket('1 day', ts) AS ts,
@@ -289,7 +289,7 @@ WITH NO DATA;
 
 -- sender position statistics
 CREATE MATERIALIZED VIEW sender_position_statistics_15m
-WITH (timescaledb.continuous, timescaledb.materialized_only = TRUE)
+WITH (timescaledb.continuous)
 AS
 SELECT
 	time_bucket('15 minutes', ts) AS ts,
@@ -323,7 +323,7 @@ GROUP BY 1, 2, 3
 WITH NO DATA;
 
 CREATE MATERIALIZED VIEW sender_position_statistics_1d
-WITH (timescaledb.continuous)
+WITH (timescaledb.continuous, timescaledb.materialized_only = FALSE)
 AS
 SELECT
 	time_bucket('1 day', ts) AS ts,
@@ -359,7 +359,7 @@ WITH NO DATA;
 
 -- sender statistics
 CREATE MATERIALIZED VIEW sender_statistics_15m
-WITH (timescaledb.continuous, timescaledb.materialized_only = TRUE)
+WITH (timescaledb.continuous)
 AS
 SELECT
 	time_bucket('15 min', ts) AS ts,
@@ -394,7 +394,7 @@ GROUP BY 1, 2
 WITH NO DATA;
 
 CREATE MATERIALIZED VIEW sender_statistics_1d
-WITH (timescaledb.continuous)
+WITH (timescaledb.continuous, timescaledb.materialized_only = FALSE)
 AS
 SELECT
 	time_bucket('1 day', ts) AS ts,
@@ -431,7 +431,7 @@ WITH NO DATA;
 
 -- receiver statistics
 CREATE MATERIALIZED VIEW receiver_statistics_15m
-WITH (timescaledb.continuous, timescaledb.materialized_only = TRUE)
+WITH (timescaledb.continuous)
 AS
 SELECT
 	time_bucket('15 min', ts) AS ts,
@@ -466,7 +466,7 @@ GROUP BY 1, 2
 WITH NO DATA;
 
 CREATE MATERIALIZED VIEW receiver_statistics_1d
-WITH (timescaledb.continuous)
+WITH (timescaledb.continuous, timescaledb.materialized_only = FALSE)
 AS
 SELECT
 	time_bucket('1 day', ts) AS ts,
