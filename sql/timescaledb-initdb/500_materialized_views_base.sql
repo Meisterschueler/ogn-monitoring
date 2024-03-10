@@ -5,7 +5,7 @@ AS
 SELECT
 	src_call,
 
-	LAST(original_address, ts) AS original_address,
+	LAST(original_address, ts) FILTER (WHERE original_address IS NOT NULL) AS original_address,
 
 	FIRST(ts_first, ts) AS ts_first,
 	LAST(ts_last, ts) AS ts_last,
@@ -20,6 +20,15 @@ SELECT
 	LAST(software_version, ts) FILTER (WHERE software_version IS NOT NULL) AS software_version,
 	LAST(hardware_version, ts) FILTER (WHERE hardware_version IS NOT NULL) AS hardware_version,
 
+	-- change indicator (bit 0-6 are the same as in source table)
+	-- bit 0: address_type
+	-- bit 1: aircraft_type
+	-- bit 2: is_stealth
+	-- bit 3: is_notrack
+	-- bit 4: address
+	-- bit 5: software_version
+	-- bit 6: hardware_version
+	-- bit 7: original_address
 	BIT_OR(changed)
 	| CASE WHEN MIN(address_type) FILTER (WHERE address_type IS NOT NULL) != MAX(address_type) FILTER (WHERE address_type IS NOT NULL) THEN 1 ELSE 0 END
 	| CASE WHEN MIN(aircraft_type) FILTER (WHERE aircraft_type IS NOT NULL) != MAX(aircraft_type) FILTER (WHERE aircraft_type IS NOT NULL) THEN 2 ELSE 0 END
@@ -28,6 +37,7 @@ SELECT
 	| CASE WHEN MIN(address) FILTER (WHERE address IS NOT NULL) != MAX(address) FILTER (WHERE address IS NOT NULL) THEN 16 ELSE 0 END
 	| CASE WHEN MIN(software_version) FILTER (WHERE software_version IS NOT NULL) != MAX(software_version) FILTER (WHERE software_version IS NOT NULL) THEN 32 ELSE 0 END
 	| CASE WHEN MIN(hardware_version) FILTER (WHERE hardware_version IS NOT NULL) != MAX(hardware_version) FILTER (WHERE hardware_version IS NOT NULL) THEN 64 ELSE 0 END
+	| CASE WHEN MIN(original_address) FILTER (WHERE original_address IS NOT NULL) != MAX(original_address) FILTER (WHERE original_address IS NOT NULL) THEN 128 ELSE 0 END
 	AS changed,
 
 	SUM(messages) AS messages,
