@@ -111,9 +111,10 @@ CREATE TABLE IF NOT EXISTS receiver_status_events (
 
     src_call            VARCHAR(9) NOT NULL,
     event               INTEGER,
-    description         TEXT
+    server_change_desc  TEXT,
+	version_change_desc TEXT
 );
-CREATE INDEX idx_receiver_status_events_src_call ON receiver_status_events (src_call, ts);
+CREATE UNIQUE INDEX idx_receiver_status_events_src_call ON receiver_status_events (src_call, ts);
 
 -- create hypertables for messages tables
 SELECT create_hypertable('invalids', 'ts', chunk_time_interval => INTERVAL '10 days');

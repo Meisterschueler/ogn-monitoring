@@ -264,8 +264,9 @@ LEFT JOIN (
 LEFT JOIN (
 	SELECT
 		src_call,
-		SUM(CASE WHEN event & b'01'::INTEGER > 0 THEN 1 ELSE 0 END) AS reboots,
-		SUM(CASE WHEN event & b'10'::INTEGER > 0 THEN 1 ELSE 0 END) AS server_changes
+		SUM(CASE WHEN event & b'001'::INTEGER > 0 THEN 1 ELSE 0 END) AS reboots,
+		SUM(CASE WHEN event & b'010'::INTEGER > 0 THEN 1 ELSE 0 END) AS server_changes,
+		SUM(CASE WHEN event & b'100'::INTEGER > 0 THEN 1 ELSE 0 END) AS version_changes
 	FROM receiver_status_events
 	WHERE ts > NOW() - INTERVAL '7 days'
 	GROUP BY 1
