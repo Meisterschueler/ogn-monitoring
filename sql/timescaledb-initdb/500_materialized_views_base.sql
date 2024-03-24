@@ -57,23 +57,10 @@ SELECT
 	r1d.ts,
 	r1d.src_call,
 	
-	AVG(
-		CASE
-			WHEN r1d.normalized_quality_max < sq.decile_01 THEN 0.1
-			WHEN r1d.normalized_quality_max >= sq.decile_01 AND r1d.normalized_quality_max < sq.decile_02 THEN 0.2
-			WHEN r1d.normalized_quality_max >= sq.decile_02 AND r1d.normalized_quality_max < sq.decile_03 THEN 0.3
-			WHEN r1d.normalized_quality_max >= sq.decile_03 AND r1d.normalized_quality_max < sq.decile_04 THEN 0.4
-			WHEN r1d.normalized_quality_max >= sq.decile_04 AND r1d.normalized_quality_max < sq.decile_05 THEN 0.5
-			WHEN r1d.normalized_quality_max >= sq.decile_05 AND r1d.normalized_quality_max < sq.decile_06 THEN 0.6
-			WHEN r1d.normalized_quality_max >= sq.decile_06 AND r1d.normalized_quality_max < sq.decile_07 THEN 0.7
-			WHEN r1d.normalized_quality_max >= sq.decile_07 AND r1d.normalized_quality_max < sq.decile_08 THEN 0.8
-			WHEN r1d.normalized_quality_max >= sq.decile_08 AND r1d.normalized_quality_max < sq.decile_09 THEN 0.9
-			ELSE 1.0
-		END
-	) AS relative_quality,
+	AVG((r1d.normalized_quality_max - sq.minimum) / (sq.maximum - sq.minimum)) AS relative_quality,
 	SUM(sq.buckets_1d) AS buckets_1d,
 
-	SUM(CASE WHEN r1d.normalized_quality_max < sq.decile_01 THEN 1 ELSE 0 END) AS reports_below_10,
+	SUM(CASE WHEN r1d.normalized_quality_max <= sq.decile_01 THEN 1 ELSE 0 END) AS reports_below_10,
 	COUNT(*) AS reports_total
 FROM records_1d AS r1d
 INNER JOIN (
@@ -83,21 +70,12 @@ INNER JOIN (
 		
 		MIN(normalized_quality_max) AS minimum,
 		PERCENTILE_DISC(0.1) WITHIN GROUP (ORDER BY normalized_quality_max) AS decile_01,
-		PERCENTILE_DISC(0.2) WITHIN GROUP (ORDER BY normalized_quality_max) AS decile_02,
-		PERCENTILE_DISC(0.3) WITHIN GROUP (ORDER BY normalized_quality_max) AS decile_03,
-		PERCENTILE_DISC(0.4) WITHIN GROUP (ORDER BY normalized_quality_max) AS decile_04,
-		PERCENTILE_DISC(0.5) WITHIN GROUP (ORDER BY normalized_quality_max) AS decile_05,
-		PERCENTILE_DISC(0.6) WITHIN GROUP (ORDER BY normalized_quality_max) AS decile_06,
-		PERCENTILE_DISC(0.7) WITHIN GROUP (ORDER BY normalized_quality_max) AS decile_07,
-		PERCENTILE_DISC(0.8) WITHIN GROUP (ORDER BY normalized_quality_max) AS decile_08,
-		PERCENTILE_DISC(0.9) WITHIN GROUP (ORDER BY normalized_quality_max) AS decile_09,
-		PERCENTILE_DISC(1.0) WITHIN GROUP (ORDER BY normalized_quality_max) AS decile_10,
 		MAX(normalized_quality_max) AS maximum,
 	
 		COUNT(*) AS buckets_1d
 	FROM records_1d
 	GROUP BY 1, 2
-	HAVING COUNT(*) > 1
+	HAVING MIN(normalized_quality_max) != MAX(normalized_quality_max)
 ) AS sq ON r1d.ts = sq.ts AND r1d.receiver = sq.receiver
 GROUP BY 1, 2
 ORDER BY 1, 2;
