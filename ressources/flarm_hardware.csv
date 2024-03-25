@@ -7,6 +7,7 @@ id,code,manufacturer,model
 11,LX06_FR,"LX Navigation","Red box"
 12,???,"LX Navigation","Red box"
 16,???,"LX Nav","LX8000 / LX9000"
+17,LXV-FM-IGC,"LX Nav","FlarmMouse IGC"
 50,TRXFLM,"AIR Avionics","TRX-1500"
 65,PowerFLARM-AM,"div. (LX Nav, ...)","PowerFLARM Applicaton Module"
 67,PowerFLARM-Core,"Flarm","PowerFLARM Core"
