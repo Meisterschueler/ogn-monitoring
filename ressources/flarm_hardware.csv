@@ -8,6 +8,6 @@ id,code,manufacturer,model
 12,???,"LX Navigation","Red box"
 16,???,"LX Nav","LX8000 / LX9000"
 50,TRXFLM,"AIR Avionics","TRX-1500"
-65,LX9070,"LXNAV","LX9070"
+65,PowerFLARM-AM,"div. (LX Nav, ...)","PowerFLARM Applicaton Module"
 67,PowerFLARM-Core,"Flarm","PowerFLARM Core"
 83,???,"Flarm","PowerFLARM Fusion"

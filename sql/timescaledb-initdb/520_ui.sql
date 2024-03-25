@@ -18,6 +18,7 @@ SELECT
 	s.original_address AS sender_original_address,
 	EXISTS (SELECT * FROM duplicates WHERE address = s.address) AS sender_is_duplicate,
 	dj.*,
+	fh.code AS flarm_hardware_devtype,
 	fh.manufacturer AS flarm_hardware_manufacturer,
 	fh.model AS flarm_hardware_model,
 	fe.expiry_date AS flarm_expiry_date,
