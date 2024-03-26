@@ -1,4 +1,4 @@
-id,code,manufacturer,model
+hwver,devtype,manufacturer,model
 02,Flarm05,"Flarm","Classic F5"
 03,Flarm06,"Flarm","Classic F6"
 04,Flarm-IGC05,"Flarm","Classic F5 IGC"
@@ -8,7 +8,7 @@ id,code,manufacturer,model
 12,???,"LX Navigation","Red box"
 16,???,"LX Nav","LX8000 / LX9000"
 17,LXV-FM-IGC,"LX Nav","FlarmMouse IGC"
-50,TRXFLM,"AIR Avionics","TRX-1500"
+50,TRXFLM,"AIR Avionics","TRX-1500/2000"
 65,PowerFLARM-AM,"div. (LX Nav, ...)","PowerFLARM Applicaton Module"
 67,PowerFLARM-Core,"Flarm","PowerFLARM Core"
 83,???,"Flarm","PowerFLARM Fusion"
