@@ -18,7 +18,7 @@ SELECT
 	s.original_address AS sender_original_address,
 	EXISTS (SELECT * FROM duplicates WHERE address = s.address) AS sender_is_duplicate,
 	dj.*,
-	fh.code AS flarm_hardware_devtype,
+	fh.devtype AS flarm_hardware_devtype,
 	fh.manufacturer AS flarm_hardware_manufacturer,
 	fh.model AS flarm_hardware_model,
 	fe.expiry_date AS flarm_expiry_date,
@@ -143,7 +143,7 @@ SELECT
 	END AS privacy
 FROM senders AS s
 LEFT JOIN ddb_joined AS dj ON s.address = dj.ddb_address
-LEFT JOIN flarm_hardware AS fh ON s.hardware_version = fh.id
+LEFT JOIN flarm_hardware AS fh ON s.hardware_version = fh.hwver
 LEFT JOIN flarm_expiry AS fe ON s.software_version = fe.version
 LEFT JOIN opensky AS o ON s.address = o.address
 LEFT JOIN weglide AS w ON s.address = w.address

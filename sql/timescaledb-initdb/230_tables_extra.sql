@@ -17,8 +17,8 @@ CREATE TABLE IF NOT EXISTS flarm_expiry (
 );
 
 CREATE TABLE IF NOT EXISTS flarm_hardware (
-    id                  SERIAL PRIMARY KEY,
-    code                TEXT NOT NULL,
+    hwver               SERIAL PRIMARY KEY,
+    devtype             TEXT NOT NULL,
     manufacturer        TEXT NOT NULL,
     model               TEXT NOT NULL
 );

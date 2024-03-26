@@ -1,4 +1,4 @@
-id,code,manufacturer,model
+hwver,devtype,manufacturer,model
 02,Flarm05,"Flarm","Classic F5"
 03,Flarm06,"Flarm","Classic F6"
 04,Flarm-IGC05,"Flarm","Classic F5 IGC"
