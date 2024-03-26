@@ -3,8 +3,14 @@ FROM postgres:alpine
 RUN apk add postgis && \
     apk add python3 && \
     apk add py3-pip && \
-    apk add jq && \
-    pip install google-cloud-storage && \
+    apk add jq
+
+# Install python virtual environment
+ENV VIRTUAL_ENV=/opt/venv
+RUN python3 -m venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+RUN pip install google-cloud-storage && \
     pip install psycopg2-binary && \
     pip install csvkit
 
