@@ -106,19 +106,52 @@ CREATE TABLE IF NOT EXISTS statuses (
 );
 CREATE INDEX idx_statuses_src_call ON statuses (src_call, ts);
 
-CREATE TABLE IF NOT EXISTS receiver_status_events (
+CREATE TABLE IF NOT EXISTS events_receiver_status (
     "ts"                TIMESTAMPTZ NOT NULL,
 
     src_call            VARCHAR(9) NOT NULL,
-    event               INTEGER,
-    server_change_desc  TEXT,
-	version_change_desc TEXT
+    receiver            VARCHAR(9) NOT NULL,
+    version             TEXT,
+    platform            TEXT,
+    senders_messages    INTEGER,
+
+    event               SMALLINT
 );
-CREATE UNIQUE INDEX idx_receiver_status_events_src_call ON receiver_status_events (src_call, ts);
+CREATE UNIQUE INDEX idx_events_receiver_status_src_call ON events_receiver_status (src_call, ts);
+
+CREATE TABLE IF NOT EXISTS events_receiver_position (
+    "ts"                TIMESTAMPTZ NOT NULL,
+
+    src_call            VARCHAR(9) NOT NULL,
+    altitude            INTEGER,
+    location            GEOMETRY(POINT, 4326),
+
+    event               SMALLINT
+);
+CREATE UNIQUE INDEX idx_events_receiver_position_src_call ON events_receiver_position (src_call, ts);
+
+CREATE TABLE IF NOT EXISTS events_sender_position (
+    "ts"                TIMESTAMPTZ NOT NULL,
+
+    src_call            VARCHAR(9) NOT NULL,
+    address_type        SMALLINT,
+    aircraft_type       SMALLINT,
+    is_stealth          BOOLEAN,
+    is_notrack          BOOLEAN,
+    address             INTEGER,
+    software_version    DOUBLE PRECISION,
+    hardware_version    SMALLINT,
+    original_address    INTEGER,
+
+    event               SMALLINT
+);
+CREATE UNIQUE INDEX idx_events_sender_position_src_call ON events_sender_position (src_call, ts);
 
 -- create hypertables for messages tables
 SELECT create_hypertable('invalids', 'ts', chunk_time_interval => INTERVAL '10 days');
 SELECT create_hypertable('unknowns', 'ts', chunk_time_interval => INTERVAL '10 days');
 SELECT create_hypertable('positions', 'ts', chunk_time_interval => INTERVAL '1 hour');
 SELECT create_hypertable('statuses', 'ts', chunk_time_interval => INTERVAL '10 days');
-SELECT create_hypertable('receiver_status_events', 'ts', chunk_time_interval => INTERVAL '10 days');
+SELECT create_hypertable('events_receiver_status', 'ts', chunk_time_interval => INTERVAL '10 days');
+SELECT create_hypertable('events_receiver_position', 'ts', chunk_time_interval => INTERVAL '10 days');
+SELECT create_hypertable('events_sender_position', 'ts', chunk_time_interval => INTERVAL '10 days');

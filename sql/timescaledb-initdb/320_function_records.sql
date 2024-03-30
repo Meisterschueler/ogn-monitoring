@@ -24,7 +24,7 @@ EXECUTE '
             SELECT
                 *,
                 ROW_NUMBER() OVER (PARTITION BY ts::DATE, src_call, receiver ORDER BY distance_max DESC) AS row
-            FROM sender_positions_5m
+            FROM positions_5m
             WHERE
                 ts BETWEEN TIMESTAMP''' || lower || ''' AND TIMESTAMP''' || upper || '''
                 AND plausibility IS NOT NULL
@@ -37,6 +37,8 @@ EXECUTE '
                 AND distance_max IS NOT NULL
                 AND altitude_max IS NOT NULL
                 AND normalized_quality_max IS NOT NULL
+
+				AND dst_call IN (''OGFLR'', ''OGNFNT'', ''OGNTRK'')
         ) AS sq
         WHERE sq.row = 1
     )

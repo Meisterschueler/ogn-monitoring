@@ -194,14 +194,14 @@ SELECT
 		ELSE NULL
 	END as airport_distance,
 	degrees(ST_Azimuth(r.location, a.location)) AS airport_radial,
-	CASE NOW() - r.ts_last < INTERVAL'1 hour'
+	CASE NOW() - r.ts_last_position < INTERVAL'1 hour'
 		WHEN TRUE THEN 'ONLINE'
 		ELSE 'OFFLINE'
 	END AS online,
 	CASE
-		WHEN rs.ts IS NULL THEN 'BLIND'
-		WHEN rs.ts > NOW() - INTERVAL'3 day' THEN 'GOOD'
-		WHEN rs.ts > NOW() - INTERVAL'7 day' THEN 'WARNING'
+		WHEN r.ts_last_sender IS NULL THEN 'BLIND'
+		WHEN r.ts_last_sender > NOW() - INTERVAL'3 day' THEN 'GOOD'
+		WHEN r.ts_last_sender > NOW() - INTERVAL'7 day' THEN 'WARNING'
 		ELSE 'BLIND'
 	END AS sighted,
 	rs.distance_max AS "range",
@@ -225,31 +225,44 @@ SELECT
 		WHEN ABS(rst.rf_correction_automatic) < 20 THEN 'WARNING'
 		ELSE 'ERROR'
 	END AS "rf_corr:check",
-	rse.reboots AS "reboots",
+	ers.reboots AS "reboots",
 	CASE
-		WHEN rse.reboots IS NULL THEN ''
-		WHEN rse.reboots < 14 THEN 'OK'
-		WHEN rse.reboots < 28 THEN 'WARNING'
+		WHEN ers.reboots IS NULL THEN ''
+		WHEN ers.reboots < 14 THEN 'OK'
+		WHEN ers.reboots < 28 THEN 'WARNING'
 		ELSE 'ERROR'
 	END AS "reboots:check",
-	rse.server_changes AS "server_changes",
+	ers.server_changes AS "server_changes",
 	CASE
-		WHEN rse.server_changes IS NULL THEN ''
-		WHEN rse.server_changes < 28 THEN 'OK'
-		WHEN rse.server_changes < 56 THEN 'WARNING'
+		WHEN ers.server_changes IS NULL THEN ''
+		WHEN ers.server_changes < 28 THEN 'OK'
+		WHEN ers.server_changes < 56 THEN 'WARNING'
 		ELSE 'ERROR'
-	END AS "server_changes:check"
+	END AS "server_changes:check",
+	ers.version_changes AS "version_changes",
+	ers.platform_changes AS "platform_changes",
+	erp.altitude_changes AS "altitude_changes",
+	CASE
+		WHEN erp.altitude_changes IS NULL THEN ''
+		WHEN erp.altitude_changes = 0 THEN 'OK'
+		ELSE 'WARNING'
+	END AS "altitude_changes:check",
+	erp.location_changes AS "location_changes",
+	CASE
+		WHEN erp.location_changes IS NULL THEN ''
+		WHEN erp.location_changes = 0 THEN 'OK'
+		ELSE 'ERROR'
+	END AS "location_changes:check"
 FROM receivers AS r
 LEFT JOIN
 (
 	SELECT
-		p1d.receiver,
-		MAX(p1d.ts) AS ts,
-		MAX(p1d.distance_max) AS distance_max
-	FROM receiver_statistics_1d AS p1d
+		receiver,
+		MAX(distance_confirmed) AS distance_max
+	FROM statistics_receiver_15m
 	WHERE
 		ts > NOW() - INTERVAL'7 days'
-		AND p1d.distance_max IS NOT NULL
+		AND distance_confirmed IS NOT NULL
 	GROUP BY 1
 ) AS rs ON rs.receiver = r.src_call
 LEFT JOIN (
@@ -257,21 +270,31 @@ LEFT JOIN (
 		src_call,
 		MAX(cpu_temperature) AS cpu_temperature,
 		AVG(rf_correction_automatic) AS rf_correction_automatic
-	FROM statuses 
+	FROM statuses
 	WHERE
-		ts > NOW() - INTERVAL '7 days'
+		ts > NOW() - INTERVAL'7 days'
 	GROUP BY 1
 ) AS rst ON rs.receiver = rst.src_call
 LEFT JOIN (
 	SELECT
 		src_call,
-		SUM(CASE WHEN event & b'001'::INTEGER > 0 THEN 1 ELSE 0 END) AS reboots,
-		SUM(CASE WHEN event & b'010'::INTEGER > 0 THEN 1 ELSE 0 END) AS server_changes,
-		SUM(CASE WHEN event & b'100'::INTEGER > 0 THEN 1 ELSE 0 END) AS version_changes
-	FROM receiver_status_events
+		COUNT(*) FILTER (WHERE event & b'0001'::INTEGER != 0) AS reboots,
+		COUNT(*) FILTER (WHERE event & b'0010'::INTEGER != 0) AS server_changes,
+		COUNT(*) FILTER (WHERE event & b'0100'::INTEGER != 0) AS version_changes,
+		COUNT(*) FILTER (WHERE event & b'1000'::INTEGER != 0) AS platform_changes
+	FROM events_receiver_status
 	WHERE ts > NOW() - INTERVAL '7 days'
 	GROUP BY 1
-) AS rse ON rs.receiver = rse.src_call
+) AS ers ON rs.receiver = ers.src_call
+LEFT JOIN (
+	SELECT
+		src_call,
+		COUNT(*) FILTER (WHERE event & b'01'::INTEGER != 0) AS altitude_changes,
+		COUNT(*) FILTER (WHERE event & b'10'::INTEGER != 0) AS location_changes
+	FROM events_receiver_position
+	WHERE ts > NOW() - INTERVAL'7 days'
+	GROUP BY src_call
+) AS erp ON rs.receiver = erp.src_call
 CROSS JOIN LATERAL (
 	SELECT *
 	FROM openaip
@@ -291,7 +314,7 @@ AS
 WITH records AS (
 	SELECT
 		r1d.*,
-		rps1d.buckets_15m / (4.*24.) AS online
+		1.0 AS online
 	FROM records_1d AS r1d
 	INNER JOIN (
 		SELECT
@@ -304,11 +327,8 @@ WITH records AS (
 		GROUP BY 1, 2
 		HAVING MIN(distance_max) < 200000			-- ignore receivers who see nothing below 200km
 	) AS sq ON r1d.ts = sq.ts AND r1d.receiver = sq.receiver AND r1d.distance_max = sq.distance_max
-	LEFT JOIN receiver_position_states_1d AS rps1d ON r1d.ts = rps1d.ts AND r1d.receiver = rps1d.src_call
 	WHERE
-		rps1d.changed IS NULL OR rps1d.changed = 0	-- ignore receiver who are changing
-		AND r1d.ts > NOW() - INTERVAL '30 days'
-		AND rps1d.ts > NOW() - INTERVAL '30 days'
+		r1d.ts > NOW() - INTERVAL '30 days'
 	ORDER BY ts, receiver
 )
 

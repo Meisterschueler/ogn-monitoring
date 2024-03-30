@@ -7,7 +7,7 @@ SELECT
 
 	LAST(original_address, ts) FILTER (WHERE original_address IS NOT NULL) AS original_address,
 
-	FIRST(ts_first, ts) AS ts_first,
+	LAST(ts_last, ts) AS ts_first,
 	LAST(ts_last, ts) AS ts_last,
 	LAST(location, ts) AS location,
 	LAST(altitude, ts) AS altitude,
@@ -20,31 +20,12 @@ SELECT
 	LAST(software_version, ts) FILTER (WHERE software_version IS NOT NULL) AS software_version,
 	LAST(hardware_version, ts) FILTER (WHERE hardware_version IS NOT NULL) AS hardware_version,
 
-	-- change indicator (bit 0-6 are the same as in source table)
-	-- bit 0: address_type
-	-- bit 1: aircraft_type
-	-- bit 2: is_stealth
-	-- bit 3: is_notrack
-	-- bit 4: address
-	-- bit 5: software_version
-	-- bit 6: hardware_version
-	-- bit 7: original_address
-	BIT_OR(changed)
-	| CASE WHEN MIN(address_type) FILTER (WHERE address_type IS NOT NULL) != MAX(address_type) FILTER (WHERE address_type IS NOT NULL) THEN 1 ELSE 0 END
-	| CASE WHEN MIN(aircraft_type) FILTER (WHERE aircraft_type IS NOT NULL) != MAX(aircraft_type) FILTER (WHERE aircraft_type IS NOT NULL) THEN 2 ELSE 0 END
-	| CASE WHEN MIN(CAST(is_stealth AS INTEGER)) FILTER (WHERE is_stealth IS NOT NULL) != MAX(CAST(is_stealth AS INTEGER)) FILTER (WHERE is_stealth IS NOT NULL) THEN 4 ELSE 0 END
-	| CASE WHEN MIN(CAST(is_notrack AS INTEGER)) FILTER (WHERE is_notrack IS NOT NULL) != MAX(CAST(is_notrack AS INTEGER)) FILTER (WHERE is_notrack IS NOT NULL) THEN 8 ELSE 0 END
-	| CASE WHEN MIN(address) FILTER (WHERE address IS NOT NULL) != MAX(address) FILTER (WHERE address IS NOT NULL) THEN 16 ELSE 0 END
-	| CASE WHEN MIN(software_version) FILTER (WHERE software_version IS NOT NULL) != MAX(software_version) FILTER (WHERE software_version IS NOT NULL) THEN 32 ELSE 0 END
-	| CASE WHEN MIN(hardware_version) FILTER (WHERE hardware_version IS NOT NULL) != MAX(hardware_version) FILTER (WHERE hardware_version IS NOT NULL) THEN 64 ELSE 0 END
-	| CASE WHEN MIN(original_address) FILTER (WHERE original_address IS NOT NULL) != MAX(original_address) FILTER (WHERE original_address IS NOT NULL) THEN 128 ELSE 0 END
-	AS changed,
-
+	0 AS changed,
 	SUM(messages) AS messages,
-	SUM(buckets_5m) AS buckets_5m,
-	SUM(buckets_15m) AS buckets_15m,
-	COUNT(*) AS buckets_1d
-FROM sender_position_states_1d
+	0 AS buckets_5m,
+	COUNT(*) AS buckets_15m,
+	0 AS buckets_1d
+FROM positions_sender_original_address_15m
 GROUP BY 1
 ORDER BY 1;
 CREATE UNIQUE INDEX senders_idx ON senders (src_call);
@@ -145,7 +126,6 @@ FROM (
 		src_call AS src_call,
 		original_address AS original_address,
 		
-		LAST(ts_first, ts) AS ts_first,
 		LAST(ts_last, ts) AS ts_last,
 		LAST(location, ts) AS location,
 		LAST(altitude, ts) AS altitude,
@@ -158,18 +138,17 @@ FROM (
 		LAST(hardware_version, ts) AS hardware_version,
 		
 		SUM(messages) AS messages,
-		SUM(buckets_5m) AS buckets_5m,
-		SUM(buckets_15m) AS buckets_15m,
+		COUNT(*) AS buckets_15m,
 		
 		COUNT(*) OVER (PARTITION BY src_call) AS duplicates
-	FROM sender_position_states_1d AS sps1d
+	FROM positions_sender_original_address_15m AS sps1d
 	LEFT JOIN flarm_expiry AS fe ON sps1d.software_version = fe.version
 	WHERE
 		original_address IS NOT NULL
 		AND fe.version IS NOT NULL
 		AND fe.expiry_date >= sps1d.ts_last
 	GROUP BY 1, 2
-	HAVING SUM(messages) >= 3 AND SUM(buckets_5m) >= 3 AND SUM(buckets_15m) >= 3
+	HAVING SUM(messages) >= 3 AND COUNT(*) >= 3
 ) AS sq
 WHERE
 	sq.duplicates > 1
@@ -177,76 +156,72 @@ ORDER BY 1, 2;
 CREATE UNIQUE INDEX duplicates_idx ON duplicates (src_call, original_address);
 
 -- aggregate latest messages (positions and statuses) for receivers
--- cost: 2s
+-- cost: 16s
 CREATE MATERIALIZED VIEW receivers
 AS
-SELECT
-	src_call,
-
-	MIN(ts_first) AS ts_first,
-	MAX(ts_last) AS ts_last,
-	MIN(location) FILTER (WHERE location IS NOT NULL) AS location,
-	MIN(altitude) FILTER (WHERE altitude IS NOT NULL) AS altitude,
-	MIN(version) FILTER (WHERE version IS NOT NULL) AS version,
-	MIN(platform) FILTER (WHERE platform IS NOT NULL) AS platform,
-
-	-- changes
-	-- bit 0: location
-	-- bit 1: altitude
-	-- bit 2: version
-	-- bit 3: platform
-	BIT_OR(changed) AS changed,
-
-	SUM(messages) AS messages,
-	SUM(buckets_15m) AS buckets_15m,
-	SUM(buckets_1d) AS buckets_1d
-FROM (
+WITH positions_sender_1d AS (
+	SELECT
+		receiver,
+		FIRST(ts_first, ts) AS ts_first_sender,
+		LAST(ts_last, ts) AS ts_last_sender,
+		SUM(messages) AS messages_sender
+	FROM positions_1d
+	WHERE
+		dst_call IN ('OGFLR', 'OGNFNT', 'OGNTRK')
+	GROUP BY 1
+),
+positions_receiver_1d AS (
 	SELECT
 		src_call,
-
-		FIRST(ts_first, ts) AS ts_first,
-		LAST(ts_last, ts) AS ts_last,
+		FIRST(ts_first, ts) AS ts_first_position,
+		LAST(ts_last, ts) AS ts_last_position,
 		LAST(location, ts) AS location,
 		LAST(altitude, ts) AS altitude,
-		NULL AS version,
-		NULL AS platform,
-
-		BIT_OR(changed)
-		| CASE WHEN MIN(location) != MAX(location) THEN 1 ELSE 0 END
-		| CASE WHEN MIN(altitude) != MAX(altitude) THEN 2 ELSE 0 END
-		AS changed,
-
-		SUM(messages) AS messages,
-		SUM(buckets_15m) AS buckets_15m,
-		COUNT(*) AS buckets_1d
-	FROM receiver_position_states_1d
+		SUM(messages) AS messages_position
+	FROM positions_1d
+	WHERE
+		dst_call = 'OGNSDR'
+		OR (dst_call = 'APRS' AND receiver LIKE 'GLIDERN%')
 	GROUP BY 1
-
-	UNION
-
+),
+statuses_receiver_1d AS (
 	SELECT
 		src_call,
-
-		FIRST(ts_first, ts) AS ts_first,
-		LAST(ts_last, ts) AS ts_last,
-		NULL AS location,
-		NULL AS altitude,
+		FIRST(ts_first, ts) AS ts_first_status,
+		LAST(ts_last, ts) AS ts_last_status,
 		LAST(version, ts) AS version,
 		LAST(platform, ts) AS platform,
-
-		(
-			BIT_OR(changed)
-			| CASE WHEN MIN(version) FILTER (WHERE version IS NOT NULL) != MAX(version) FILTER (WHERE version IS NOT NULL) THEN 1 ELSE 0 END
-			| CASE WHEN MIN(platform) FILTER (WHERE platform IS NOT NULL) != MAX(platform) FILTER (WHERE platform IS NOT NULL) THEN 2 ELSE 0 END
-		) << 2
-		AS changed,
-
-		SUM(messages) AS messages,
-		SUM(buckets_15m) AS buckets_15m,
-		COUNT(*) AS buckets_1d
-	FROM receiver_status_states_1d
+		SUM(messages) AS messages_status
+	FROM statuses_1d
+	WHERE
+		dst_call = 'OGNSDR'	
+		OR (dst_call = 'APRS' AND receiver LIKE 'GLIDERN%')
 	GROUP BY 1
-) AS sq
-GROUP BY 1
-ORDER BY 1, 2;
+)
+
+SELECT 
+	CASE
+		WHEN ps1d.receiver IS NOT NULL THEN ps1d.receiver
+		WHEN pr1d.src_call IS NOT NULL THEN pr1d.src_call
+		WHEN sr1d.src_call IS NOT NULL THEN sr1d.src_call
+	END AS src_call,
+	
+	ps1d.ts_first_sender,
+	ps1d.ts_last_sender,
+	ps1d.messages_sender,
+	
+	pr1d.ts_first_position,
+	pr1d.ts_last_position,
+	pr1d.location,
+	pr1d.altitude,
+	pr1d.messages_position,
+	
+	sr1d.ts_first_status,
+	sr1d.ts_last_status,
+	sr1d.version,
+	sr1d.platform,
+	sr1d.messages_status
+FROM positions_sender_1d AS ps1d
+FULL OUTER JOIN positions_receiver_1d AS pr1d ON pr1d.src_call = ps1d.receiver
+FULL OUTER JOIN statuses_receiver_1d AS sr1d ON sr1d.src_call = COALESCE(pr1d.src_call, ps1d.receiver);
 CREATE UNIQUE INDEX receivers_idx ON receivers (src_call);

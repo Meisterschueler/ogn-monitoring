@@ -20,8 +20,10 @@ SELECT cron.schedule('*/5 * * * *', '-- sender updates
 	REFRESH MATERIALIZED VIEW CONCURRENTLY senders_joined;
 ');
 
-SELECT cron.schedule('*/5 * * * *', '-- receiver_status_events update
-	SELECT update_receiver_status_events(NOW() - INTERVAL''1 hour'', NOW());
+SELECT cron.schedule('*/10 * * * *', '-- event updates
+	SELECT update_events_receiver_status(INTERVAL''1 day'');
+	SELECT update_events_receiver_position(INTERVAL''1 day'');
+	SELECT update_events_sender_position(INTERVAL''1 day'');
 ');
 
 -- daily updates
