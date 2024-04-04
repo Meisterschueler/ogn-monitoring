@@ -1,4 +1,4 @@
--- sender positions
+-- positions_5m related
 SELECT add_continuous_aggregate_policy('positions_5m',
   start_offset => INTERVAL '1 hour',
   end_offset => INTERVAL '5 minutes',
@@ -18,7 +18,7 @@ SELECT add_compression_policy('positions_1d', compress_after => INTERVAL '16 day
 SELECT add_continuous_aggregate_policy('positions_sender_15m',
   start_offset => INTERVAL '2 hours',
   end_offset => INTERVAL '15 minutes',
-  initial_start => '2000-01-01 00:02:00'::TIMESTAMPTZ,
+  initial_start => '2000-01-01 00:01:00'::TIMESTAMPTZ,
   schedule_interval => INTERVAL '15 minutes');
 ALTER MATERIALIZED VIEW positions_sender_15m SET (timescaledb.compress = true);
 SELECT add_compression_policy('positions_sender_15m', compress_after => INTERVAL '4 hours');
@@ -26,12 +26,29 @@ SELECT add_compression_policy('positions_sender_15m', compress_after => INTERVAL
 SELECT add_continuous_aggregate_policy('positions_receiver_15m',
   start_offset => INTERVAL '2 hours',
   end_offset => INTERVAL '15 minutes',
-  initial_start => '2000-01-01 00:02:00'::TIMESTAMPTZ,
+  initial_start => '2000-01-01 00:01:00'::TIMESTAMPTZ,
   schedule_interval => INTERVAL '15 minutes');
 ALTER MATERIALIZED VIEW positions_receiver_15m SET (timescaledb.compress = true);
 SELECT add_compression_policy('positions_receiver_15m', compress_after => INTERVAL '4 hours');
 
--- directions
+SELECT add_continuous_aggregate_policy('statistics_sender_15m',
+  start_offset => INTERVAL '2 hours',
+  end_offset => INTERVAL '15 minutes',
+  initial_start => '2000-01-01 00:01:00'::TIMESTAMPTZ,
+  schedule_interval => INTERVAL'15 minutes');
+ALTER MATERIALIZED VIEW statistics_sender_15m SET (timescaledb.compress = true);
+SELECT add_compression_policy('statistics_sender_15m', compress_after => INTERVAL '4 hours');
+
+SELECT add_continuous_aggregate_policy('statistics_receiver_15m',
+  start_offset => INTERVAL '2 hours',
+  end_offset => INTERVAL '15 minutes',
+  initial_start => '2000-01-01 00:01:00'::TIMESTAMPTZ,
+  schedule_interval => INTERVAL'15 minutes');
+ALTER MATERIALIZED VIEW statistics_receiver_15m SET (timescaledb.compress = true);
+SELECT add_compression_policy('statistics_receiver_15m', compress_after => INTERVAL '4 hours');
+
+
+-- directions_15m based
 SELECT add_continuous_aggregate_policy('directions_15m',
   start_offset => INTERVAL '2 hours',
   end_offset => INTERVAL '15 minutes',
@@ -48,27 +65,22 @@ SELECT add_continuous_aggregate_policy('directions_1d',
 ALTER MATERIALIZED VIEW directions_1d SET (timescaledb.compress = true);
 SELECT add_compression_policy('directions_1d', compress_after => INTERVAL '16 days');
 
--- receiver dst_call statistics
-SELECT add_continuous_aggregate_policy('statistics_receiver_15m',
-  start_offset => INTERVAL '2 hours',
-  end_offset => INTERVAL '15 minutes',
-  initial_start => '2000-01-01 00:02:30'::TIMESTAMPTZ,
-  schedule_interval => INTERVAL'15 minutes');
-ALTER MATERIALIZED VIEW statistics_receiver_15m SET (timescaledb.compress = true);
-SELECT add_compression_policy('statistics_receiver_15m', compress_after => INTERVAL '4 hours');
 
-SELECT add_continuous_aggregate_policy('statistics_sender_15m',
-  start_offset => INTERVAL '2 hours',
-  end_offset => INTERVAL '15 minutes',
-  initial_start => '2000-01-01 00:02:30'::TIMESTAMPTZ,
-  schedule_interval => INTERVAL'15 minutes');
-ALTER MATERIALIZED VIEW statistics_sender_15m SET (timescaledb.compress = true);
-SELECT add_compression_policy('statistics_sender_15m', compress_after => INTERVAL '4 hours');
-
+-- extra view
 SELECT add_continuous_aggregate_policy('positions_sender_original_address_15m',
   start_offset => INTERVAL '2 hours',
   end_offset => INTERVAL '15 minutes',
-  initial_start => '2000-01-01 00:02:30'::TIMESTAMPTZ,
+  initial_start => '2000-01-01 00:03:30'::TIMESTAMPTZ,
   schedule_interval => INTERVAL'15 minutes');
 ALTER MATERIALIZED VIEW positions_sender_original_address_15m SET (timescaledb.compress = true);
 SELECT add_compression_policy('positions_sender_original_address_15m', compress_after => INTERVAL '4 hours');
+
+
+-- statuses
+SELECT add_continuous_aggregate_policy('statuses_1d',
+  start_offset => INTERVAL '8 days',
+  end_offset => INTERVAL '1 day',
+  initial_start => '2000-01-01 00:05:00'::TIMESTAMPTZ,
+  schedule_interval => INTERVAL '1 day');
+ALTER MATERIALIZED VIEW statuses_1d SET (timescaledb.compress = true);
+SELECT add_compression_policy('statuses_1d', compress_after => INTERVAL '16 days');
