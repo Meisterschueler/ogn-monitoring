@@ -362,7 +362,9 @@ EXECUTE '
 			) AS sq3
 		) AS sq4
 	) AS sq5
-	WHERE rn = 1 OR event != 0
+	WHERE
+		ts BETWEEN (SELECT ts_start FROM range_to_compute) AND (SELECT ts_end FROM range_to_compute)
+		AND (rn = 1 OR event != 0)
 	ORDER BY 1
 	ON CONFLICT DO NOTHING;
 	';

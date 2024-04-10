@@ -279,8 +279,7 @@ WITH plausibilities AS (
 					) AS sq
 					WHERE
 						src_call NOT LIKE ''RND%''
-						AND dst_call IN (''APRS'', ''OGFLR'', ''OGNFNT'', ''OGNTRK'')
-						AND receiver NOT LIKE ''GLIDERN%''
+						AND (dst_call IN (''OGFLR'', ''OGNFNT'', ''OGNTRK'') OR (dst_call = ''APRS'' AND receiver NOT LIKE ''GLIDERN%''))
 						AND ts BETWEEN lower_buffer AND upper_buffer
 				) AS sq2
 			) AS sq3
