@@ -295,6 +295,32 @@ WHERE
 GROUP BY 1, 2, 3
 WITH NO DATA;
 
+CREATE MATERIALIZED VIEW positions_sender_original_address_1d
+WITH (timescaledb.continuous, timescaledb.materialized_only = FALSE)
+AS
+SELECT
+	time_bucket('1 day', ts) AS ts,
+	src_call,
+	original_address,
+	
+	LAST(ts_last, ts) AS ts_last,
+	LAST(location, ts) AS location,
+	LAST(altitude, ts) AS altitude,
+	
+	LAST(address_type, ts) AS address_type,
+	LAST(aircraft_type, ts) AS aircraft_type,
+	LAST(is_stealth, ts) AS is_stealth,
+	LAST(is_notrack, ts) AS is_notrack,
+	LAST(address, ts) AS address,
+	LAST(software_version, ts) AS software_version,
+	LAST(hardware_version, ts) AS hardware_version,
+
+	SUM(messages) AS messages,
+	COUNT(*) AS buckets_15m
+FROM positions_sender_original_address_15m
+GROUP BY 1, 2, 3
+WITH NO DATA;
+
 
 -- aggregated statuses - no materialization because of small data base
 CREATE MATERIALIZED VIEW statuses_1d

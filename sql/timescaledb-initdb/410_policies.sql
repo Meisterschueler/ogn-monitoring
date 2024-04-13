@@ -75,6 +75,13 @@ SELECT add_continuous_aggregate_policy('positions_sender_original_address_15m',
 ALTER MATERIALIZED VIEW positions_sender_original_address_15m SET (timescaledb.compress = true);
 SELECT add_compression_policy('positions_sender_original_address_15m', compress_after => INTERVAL '4 hours');
 
+SELECT add_continuous_aggregate_policy('positions_sender_original_address_1d',
+  start_offset => INTERVAL '8 days',
+  end_offset => INTERVAL '1 day',
+  initial_start => '2000-01-01 00:00:40'::TIMESTAMPTZ,
+  schedule_interval => INTERVAL '1 day');
+ALTER MATERIALIZED VIEW positions_sender_original_address_1d SET (timescaledb.compress = true);
+SELECT add_compression_policy('positions_sender_original_address_1d', compress_after => INTERVAL '16 days');
 
 -- statuses
 SELECT add_continuous_aggregate_policy('statuses_1d',

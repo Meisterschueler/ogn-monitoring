@@ -23,9 +23,9 @@ SELECT
 	0 AS changed,
 	SUM(messages) AS messages,
 	0 AS buckets_5m,
-	COUNT(*) AS buckets_15m,
-	0 AS buckets_1d
-FROM positions_sender_original_address_15m
+	SUM(buckets_15m) AS buckets_15m,
+	COUNT(*) AS buckets_1d
+FROM positions_sender_original_address_1d
 GROUP BY 1
 ORDER BY 1;
 CREATE UNIQUE INDEX senders_idx ON senders (src_call);
@@ -141,7 +141,7 @@ FROM (
 		COUNT(*) AS buckets_15m,
 		
 		COUNT(*) OVER (PARTITION BY src_call) AS duplicates
-	FROM positions_sender_original_address_15m AS sps1d
+	FROM positions_sender_original_address_1d AS sps1d
 	LEFT JOIN flarm_expiry AS fe ON sps1d.software_version = fe.version
 	WHERE
 		original_address IS NOT NULL

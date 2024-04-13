@@ -1,5 +1,5 @@
 -- create a function which updates position plausibilities
-CREATE OR REPLACE FUNCTION update_plausibilities(table_name TEXT, lower TIMESTAMP, upper TIMESTAMP)
+CREATE OR REPLACE FUNCTION update_plausibilities(lower TIMESTAMP, upper TIMESTAMP)
 	RETURNS BIGINT
 AS $$
 DECLARE
@@ -288,7 +288,7 @@ WITH plausibilities AS (
 	WHERE ts BETWEEN lower_limit AND upper_limit
 )
 	
-UPDATE ' || table_name || ' AS pos
+UPDATE positions AS pos
 SET plausibility = CAST(plausibilities.value AS SMALLINT)
 FROM plausibilities
 WHERE
@@ -306,7 +306,7 @@ WHERE
 END;
 $$ LANGUAGE plpgsql;
 
--- convenience function for table 'positions'
+-- convenience function
 CREATE OR REPLACE FUNCTION update_plausibilities(start_time TIMESTAMP, end_time TIMESTAMP, step INTERVAL)
   RETURNS void
 AS $$
@@ -318,7 +318,7 @@ BEGIN
   
   WHILE ts < end_time LOOP
   	ts_start := clock_timestamp();
-    PERFORM update_plausibilities('positions', ts, ts + step);
+    PERFORM update_plausibilities(ts, ts + step);
 	
 	RAISE WARNING 'update_plausibilities (% - %s) executed in: %s', ts, ts + step, clock_timestamp() - ts_start;
 	ts := ts + step;
