@@ -44,7 +44,9 @@ CREATE TABLE IF NOT EXISTS openaip (
 
     location            GEOMETRY(POINT, 4326),
     altitude            DOUBLE PRECISION,
-    style               SMALLINT
+    style               SMALLINT,
+
+    tzid                VARCHAR(80)
 );
 CREATE INDEX idx_openaip_location ON openaip USING gist(location);
 
@@ -79,6 +81,7 @@ CREATE TABLE IF NOT EXISTS countries (
     iso_a2_eh           CHARACTER VARYING(3)
 );
 CREATE INDEX IF NOT EXISTS countries_geom_idx ON countries USING GIST(geom);
+
 
 -- Tables for nodejs container
 CREATE TABLE IF NOT EXISTS measurements (
