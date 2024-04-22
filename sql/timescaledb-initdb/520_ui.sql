@@ -34,6 +34,8 @@ SELECT
 		ELSE NULL
 	END as airport_distance,
 	degrees(ST_Azimuth(s.location, a.location)) AS airport_radial,
+	toa.airport_name AS takeoff_airport_name,
+	toa.airport_iso2 AS takeoff_airport_iso2,
 	o.registration AS opensky_registration,
 	o.manufacturer AS opensky_manufacturer,
 	o.model AS opensky_model,
@@ -141,13 +143,27 @@ SELECT
 		WHEN dj.ddb_registration IS NULL AND dj.ddb_model_type in (1,2,3,4) THEN 'REG:NOIDENT'
 		ELSE 'OK'
 	END AS privacy
-FROM senders AS s
+FROM (
+	SELECT * FROM senders
+	UNION
+	SELECT * FROM senders_frozen AS sf
+	WHERE NOT EXISTS (SELECT 1 FROM senders AS s1 WHERE s1.src_call = sf.src_call)
+) AS s
 LEFT JOIN ddb_joined AS dj ON s.address = dj.ddb_address
 LEFT JOIN flarm_hardware AS fh ON s.hardware_version = fh.hwver
 LEFT JOIN flarm_expiry AS fe ON s.software_version = fe.version
 LEFT JOIN opensky AS o ON s.address = o.address
 LEFT JOIN weglide AS w ON s.address = w.address
 LEFT JOIN flarmnet AS fn ON s.address = fn.address
+LEFT JOIN (
+	SELECT 
+		src_call,
+		LAST(airport_name, receiver_ts) AS airport_name,
+		LAST(airport_iso2, receiver_ts) AS airport_iso2
+	FROM takeoffs
+	WHERE event IN (0, 2, 4, 6)
+	GROUP BY src_call
+) AS toa ON s.src_call = toa.src_call
 LEFT JOIN (
 	SELECT 
 		sq.src_call,
@@ -254,8 +270,7 @@ SELECT
 		ELSE 'ERROR'
 	END AS "location_changes:check"
 FROM receivers AS r
-LEFT JOIN
-(
+LEFT JOIN (
 	SELECT
 		receiver,
 		MAX(distance_confirmed) AS distance_max
@@ -327,8 +342,19 @@ WITH records AS (
 		GROUP BY 1, 2
 		HAVING MIN(distance_max) < 200000			-- ignore receivers who see nothing below 200km
 	) AS sq ON r1d.ts = sq.ts AND r1d.receiver = sq.receiver AND r1d.distance_max = sq.distance_max
+	LEFT JOIN (
+		SELECT
+			time_bucket('1 day', ts) AS ts,
+			src_call,
+			bit_or(event) | b'01'::INTEGER != 0 AS position_jumped
+		FROM events_receiver_position
+		WHERE
+			ts > NOW() - INTERVAL '30 days'
+		GROUP BY 1, 2
+	) AS sq2 ON r1d.ts = sq2.ts AND r1d.receiver = sq2.src_call
 	WHERE
 		r1d.ts > NOW() - INTERVAL '30 days'
+		AND COALESCE(sq2.position_jumped, false) IS FALSE
 	ORDER BY ts, receiver
 )
 
@@ -379,3 +405,53 @@ FROM (
 ) AS sq4;
 CREATE UNIQUE INDEX ranking_idx ON ranking (ts, ranking_global);
 CREATE INDEX ranking_ts_idx ON ranking(ts);
+
+-- create logbook
+CREATE MATERIALIZED VIEW logbook
+AS
+SELECT
+	*,
+	to_char(COALESCE(sq.receiver_ts_takeoff, sq.receiver_ts_landing), 'YYYY-MM-DD') AS str_date,
+	to_char(sq.receiver_ts_takeoff, 'HH24:MI') AS str_takeoff,
+	to_char(sq.receiver_ts_landing, 'HH24:MI') AS str_landing,
+	to_char(date_trunc('minutes', sq.receiver_ts_landing) - date_trunc('minutes', sq.receiver_ts_takeoff), 'HH24:MI') AS str_duration
+FROM (
+	SELECT
+		src_call,
+	
+		CASE WHEN is_takeoff IS TRUE THEN receiver_ts ELSE NULL END AS receiver_ts_takeoff,
+		CASE WHEN is_takeoff IS TRUE THEN airport_name ELSE NULL END AS airport_name_takeoff,
+		CASE WHEN is_takeoff IS TRUE THEN airport_iso2 ELSE NULL END AS airport_iso2_takeoff,
+		CASE WHEN is_takeoff_n IS FALSE THEN receiver_ts_n ELSE NULL END AS receiver_ts_landing,
+		CASE WHEN is_takeoff_n IS FALSE THEN airport_name_n ELSE NULL END AS airport_name_landing,
+		CASE WHEN is_takeoff_n IS FALSE THEN airport_iso2_n ELSE NULL END AS airport_iso2_landing,
+	
+		CASE
+			WHEN is_takeoff IS TRUE AND is_takeoff_n IS NULL THEN 'WARNING: NOT LANDED YET'
+			WHEN is_takeoff IS TRUE AND is_takeoff_n IS TRUE THEN 'ERROR: NO LANDING FOUND'
+			WHEN is_takeoff IS FALSE AND is_takeoff_n IS FALSE THEN 'ERROR: NO TAKEOFF FOUND'
+			WHEN is_takeoff IS TRUE AND is_takeoff_n IS FALSE THEN 'OK'
+			ELSE 'ERROR: ' || COALESCE(is_takeoff_p::TEXT, 'NULL') || ' ' || COALESCE(is_takeoff::TEXT, 'NULL') || ' ' || COALESCE(is_takeoff_n::TEXT, 'NULL')
+		END AS check_state
+	FROM (
+		SELECT
+			t.src_call,
+			
+			receiver_ts,
+			LEAD(receiver_ts) OVER w AS receiver_ts_n,
+		
+			airport_name,
+			LEAD(airport_name) OVER w AS airport_name_n,
+	
+			airport_iso2,
+			LEAD(airport_iso2) OVER w AS airport_iso2_n,
+		
+			LAG(event) OVER w IN (0, 2, 4, 6) AS is_takeoff_p,
+			event IN (0, 2, 4, 6) AS is_takeoff,
+			LEAD(event) OVER w IN (0, 2, 4, 6) AS is_takeoff_n
+		FROM takeoffs AS t
+		WINDOW w AS (PARTITION BY src_call ORDER BY receiver_ts)
+	) AS sq
+	WHERE
+		is_takeoff IS TRUE OR is_takeoff_n IS FALSE
+) AS sq;

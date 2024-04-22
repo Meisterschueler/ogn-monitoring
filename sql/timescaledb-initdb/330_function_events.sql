@@ -374,3 +374,270 @@ RETURN processed_event_rows;
 
 END;
 $$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION update_events_takeoff(source TEXT, target TEXT, lower TIMESTAMPTZ, upper TIMESTAMPTZ)
+RETURNS INTEGER AS $$
+DECLARE
+	processed_position_rows INTEGER;
+BEGIN
+
+EXECUTE '
+	WITH positions_selection AS (
+		SELECT
+			src_call,
+			
+			LAG(receiver_ts, 2) OVER w AS receiver_ts_pp,
+			LAG(receiver_ts, 1) OVER w AS receiver_ts_p,
+			receiver_ts,
+			LEAD(receiver_ts, 1) OVER w AS receiver_ts_n,
+			LEAD(receiver_ts, 2) OVER w AS receiver_ts_nn,
+			
+			LAG(course, 2) OVER w AS course_pp,
+			LAG(course, 1) OVER w AS course_p,
+			course,
+			LEAD(course, 1) OVER w AS course_n,
+			LEAD(course, 2) OVER w AS course_nn,
+			
+			LAG(speed, 2) OVER w AS speed_pp,
+			LAG(speed, 1) OVER w AS speed_p,
+			speed,
+			LEAD(speed, 1) OVER w AS speed_n,
+			LEAD(speed, 2) OVER w AS speed_nn,
+			
+			LAG(altitude, 2) OVER w AS altitude_pp,
+			LAG(altitude, 1) OVER w AS altitude_p,
+			altitude,
+			LEAD(altitude, 1) OVER w AS altitude_n,
+			LEAD(altitude, 2) OVER w AS altitude_nn,
+		
+			LAG(climb_rate, 2) OVER w AS climb_rate_pp,
+			LAG(climb_rate, 1) OVER w AS climb_rate_p,
+			climb_rate,
+			LEAD(climb_rate, 1) OVER w AS climb_rate_n,
+			LEAD(climb_rate, 2) OVER w AS climb_rate_nn,
+		
+			LAG(turn_rate, 2) OVER w AS turn_rate_pp,
+			LAG(turn_rate, 1) OVER w AS turn_rate_p,
+			turn_rate,
+			LEAD(turn_rate, 1) OVER w AS turn_rate_n,
+			LEAD(turn_rate, 2) OVER w AS turn_rate_nn,
+		
+			LAG(location, 2) OVER w AS location_pp,
+			LAG(location, 1) OVER w AS location_p,
+			location,
+			LEAD(location, 1) OVER w AS location_n,
+			LEAD(location, 2) OVER w AS location_nn,
+
+			takeoff_speed / 1.852 AS takeoff_speed,
+			landing_speed / 1.852 AS landing_speed
+		FROM (
+			SELECT
+				FIRST_VALUE(src_call) OVER w AS src_call,
+				FIRST_VALUE(receiver_ts) OVER w AS receiver_ts,
+				FIRST_VALUE(course) OVER w AS course,
+				FIRST_VALUE(speed) OVER w AS speed,
+				FIRST_VALUE(altitude) OVER w AS altitude,
+				FIRST_VALUE(climb_rate) OVER w AS climb_rate,
+				FIRST_VALUE(turn_rate) OVER w AS turn_rate,
+				FIRST_VALUE(location) OVER w AS location,
+
+				FIRST_VALUE(takeoff_speed) OVER w as takeoff_speed,
+				FIRST_VALUE(landing_speed) OVER w as landing_speed
+			FROM ' || source || ' AS p
+			INNER JOIN (
+				SELECT * FROM (
+					VALUES
+						(1, 55, 40),	-- GLIDER/MOTORGLIDER
+						(2, 55, 40),	-- TOWPLANE
+						(3, 55, 40),	-- HELICOPTER
+						(4, 55, 40),	-- PARACHUTE
+						(5, 55, 40),	-- DROPPLANE
+						(6, 55, 40),	-- HANGGLIDER
+						(7, 55, 40),	-- PARAGLIDER
+						(8, 55, 40),	-- PLANE
+						(9, 55, 40),	-- JET
+						(10, 55, 40),	-- UFO
+						(11, 55, 40),	-- BALLOON
+						(12, 55, 40),	-- AIRSHIP
+						(13, 55, 40),	-- UAV
+						(14, 55, 40),	-- GROUND SUPPORT
+						(15, 55, 40)	-- STATIC OBJECT
+				) AS t (aircraft_type, takeoff_speed, landing_speed)
+			) AS speed_limit ON speed_limit.aircraft_type = p.aircraft_type
+			WHERE
+				ts BETWEEN ''' || lower || ''' AND ''' || upper || '''
+				AND dst_call IN (''OGFLR'', ''OGNFNT'', ''OGNTRK'')
+			WINDOW w AS (PARTITION BY src_call, receiver_ts ORDER BY COALESCE(error, 0))
+		)
+		WINDOW w AS (PARTITION BY src_call ORDER BY receiver_ts)
+	)
+
+	INSERT INTO ' || target || ' AS t (src_call, receiver_ts, course, altitude, location, event)
+	SELECT
+		src_call,
+		receiver_ts,
+		
+		course,
+		--speed,
+		altitude,
+		--climb_rate,
+		--turn_rate,
+		location,
+
+		event
+	FROM (
+		SELECT
+			CASE
+				WHEN
+						receiver_ts_pp > receiver_ts_p - INTERVAL''30 seconds''
+						AND receiver_ts_p > receiver_ts - INTERVAL''30 seconds''
+						AND receiver_ts > receiver_ts_n - INTERVAL''30 seconds''
+						AND receiver_ts_n > receiver_ts_nn - INTERVAL''30 seconds''
+						AND ST_DistanceSphere(location_pp, location_p) < 500
+						AND ST_DistanceSphere(location_p, location) < 500
+						AND ST_DistanceSphere(location, location_n) < 500
+						AND ST_DistanceSphere(location_n, location_nn) < 500
+					THEN CASE
+						WHEN
+							speed_pp < takeoff_speed
+							AND speed_p < takeoff_speed
+							AND speed > takeoff_speed
+							AND speed_n > takeoff_speed
+							AND speed_nn > takeoff_speed
+						THEN 6
+						WHEN
+							speed_pp > landing_speed
+							AND speed_p > landing_speed
+							AND speed < landing_speed
+							AND speed_n < landing_speed
+							AND speed_nn < landing_speed
+						THEN 7
+						ELSE NULL
+					END
+				WHEN
+						receiver_ts_pp > receiver_ts_p - INTERVAL''30 seconds''
+						AND receiver_ts_p > receiver_ts - INTERVAL''30 seconds''
+						AND receiver_ts > receiver_ts_n - INTERVAL''30 seconds''
+						AND ST_DistanceSphere(location_pp, location_p) < 500
+						AND ST_DistanceSphere(location_p, location) < 500
+						AND ST_DistanceSphere(location, location_n) < 500
+					THEN CASE
+						WHEN
+							speed_pp < takeoff_speed
+							AND speed_p < takeoff_speed
+							AND speed > takeoff_speed
+							AND speed_n > takeoff_speed
+						THEN 4
+						WHEN
+							speed_pp > landing_speed
+							AND speed_p > landing_speed
+							AND speed < landing_speed
+							AND speed_n < landing_speed
+						THEN 5
+						ELSE NULL
+					END
+				WHEN
+						receiver_ts_pp > receiver_ts_p - INTERVAL''30 seconds''
+						AND receiver_ts_p > receiver_ts - INTERVAL''30 seconds''
+						AND ST_DistanceSphere(location_pp, location_p) < 500
+						AND ST_DistanceSphere(location_p, location) < 500
+					THEN CASE
+						WHEN
+							speed_pp < takeoff_speed
+							AND speed_p < takeoff_speed
+							AND speed > takeoff_speed
+						THEN 2
+						WHEN
+							speed_pp > landing_speed
+							AND speed_p > landing_speed
+							AND speed < landing_speed
+						THEN 3
+						ELSE NULL
+					END
+				WHEN 
+						receiver_ts_p > receiver_ts - INTERVAL''30 seconds''
+						AND ST_DistanceSphere(location_p, location) < 500
+					THEN CASE
+						WHEN
+							speed_p < takeoff_speed
+							AND speed > takeoff_speed
+						THEN 0
+						WHEN
+							speed_p > landing_speed
+							AND speed < landing_speed
+						THEN 1
+						ELSE NULL
+					END
+				ELSE NULL
+			END AS event,
+			*
+		FROM positions_selection
+	)
+	WHERE event IS NOT NULL
+	ON CONFLICT (src_call, receiver_ts) DO UPDATE
+		SET event = CASE WHEN excluded.event > t.event THEN excluded.event ELSE t.event END;
+';
+	
+	GET DIAGNOSTICS processed_position_rows = ROW_COUNT;
+	RETURN processed_position_rows;
+
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION update_events_takeoff(lower TIMESTAMPTZ, upper TIMESTAMPTZ)
+RETURNS INTEGER AS $$
+DECLARE
+	processed_position_rows INTEGER;
+BEGIN
+
+EXECUTE '
+	SELECT update_events_takeoff(''positions'', ''events_takeoff'', ''' || lower || ''', ''' || upper || ''');
+';
+	
+	GET DIAGNOSTICS processed_position_rows = ROW_COUNT;
+	RETURN processed_position_rows;
+
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION update_takeoffs(lower TIMESTAMPTZ, upper TIMESTAMPTZ)
+RETURNS INTEGER AS $$
+DECLARE
+	processed_position_rows INTEGER;
+BEGIN
+
+EXECUTE '
+	INSERT INTO takeoffs (receiver_ts, src_call, course, event, airport_name, airport_iso2, airport_tzid)
+	SELECT
+		receiver_ts,
+		src_call,
+		course,
+		event,
+		a.name AS airport_name,
+		a.iso2 AS airport_iso2,
+		a.tzid AS airport_tzid
+	FROM events_takeoff AS e
+	CROSS JOIN LATERAL (
+		SELECT *
+		FROM openaip
+		ORDER BY openaip.location <-> e.location
+		LIMIT 1
+	) AS a
+	WHERE
+		receiver_ts BETWEEN ''' || lower || ''' AND ''' || upper || '''
+		e.altitude*0.3048 BETWEEN a.altitude - 100 AND a.altitude + 200
+		AND ST_DistanceSphere(e.location, a.location) < 2500
+	ON CONFLICT (src_call, receiver_ts) DO UPDATE
+		SET event = excluded.event;
+';
+	
+	GET DIAGNOSTICS processed_position_rows = ROW_COUNT;
+	RETURN processed_position_rows;
+
+END;
+$$ LANGUAGE plpgsql;
+
+

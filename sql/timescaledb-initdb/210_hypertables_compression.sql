@@ -39,3 +39,17 @@ ALTER TABLE events_sender_position SET (
 	timescaledb.compress_chunk_time_interval = '20 days'
 );
 SELECT add_compression_policy('events_sender_position', compress_after => INTERVAL '1 day');
+
+ALTER TABLE events_takeoff SET (
+	timescaledb.compress,
+	timescaledb.compress_segmentby = 'src_call',
+	timescaledb.compress_chunk_time_interval = '20 days'
+);
+SELECT add_compression_policy('events_takeoff', compress_after => INTERVAL '1 day');
+
+ALTER TABLE takeoffs SET (
+	timescaledb.compress,
+	timescaledb.compress_segmentby = 'src_call',
+	timescaledb.compress_chunk_time_interval = '20 days'
+);
+SELECT add_compression_policy('takeoffs', compress_after => INTERVAL '1 day');

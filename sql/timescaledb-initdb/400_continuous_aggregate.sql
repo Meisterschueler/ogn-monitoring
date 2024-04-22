@@ -283,15 +283,14 @@ SELECT
 	LAST(is_stealth, ts) AS is_stealth,
 	LAST(is_notrack, ts) AS is_notrack,
 	LAST(address, ts) AS address,
-	LAST(software_version, ts) AS software_version,
-	LAST(hardware_version, ts) AS hardware_version,
+	LAST(software_version, ts) FILTER (WHERE software_version IS NOT NULL) AS software_version,
+	LAST(hardware_version, ts) FILTER (WHERE software_version IS NOT NULL) AS hardware_version,
 
 	COUNT(*) AS messages
 FROM positions
 WHERE
 	dst_call IN ('OGFLR', 'OGNFNT', 'OGNTRK')
 	AND address IS NOT NULL
-	AND original_address IS NOT NULL
 GROUP BY 1, 2, 3
 WITH NO DATA;
 
@@ -312,8 +311,8 @@ SELECT
 	LAST(is_stealth, ts) AS is_stealth,
 	LAST(is_notrack, ts) AS is_notrack,
 	LAST(address, ts) AS address,
-	LAST(software_version, ts) AS software_version,
-	LAST(hardware_version, ts) AS hardware_version,
+	LAST(software_version, ts) FILTER (WHERE software_version IS NOT NULL) AS software_version,
+	LAST(hardware_version, ts) FILTER (WHERE hardware_version IS NOT NULL) AS hardware_version,
 
 	SUM(messages) AS messages,
 	COUNT(*) AS buckets_15m
@@ -346,4 +345,17 @@ WHERE
 		OR (dst_call = 'OGNSDR' OR (dst_call = 'APRS' AND receiver LIKE 'GLIDERN%'))
 	)
 GROUP BY 1, 2, 3, 4
+WITH NO DATA;
+
+CREATE MATERIALIZED VIEW statistics_dst_call_15m
+WITH (timescaledb.continuous)
+AS
+SELECT
+	time_bucket('15 minutes', ts) AS ts,
+	dst_call,
+	receiver,
+
+	COUNT(*) AS messages
+FROM positions
+GROUP BY 1, 2, 3
 WITH NO DATA;

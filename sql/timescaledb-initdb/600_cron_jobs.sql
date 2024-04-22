@@ -20,6 +20,12 @@ SELECT cron.schedule('6,11,16,21,26,31,36,41,46,51,56 * * * *', '-- sender updat
 	REFRESH MATERIALIZED VIEW CONCURRENTLY senders_joined;
 ');
 
+SELECT cron.schedule('7,12,17,22,27,32,37,42,47,52,57 * * * *', '-- logbook updates
+	SELECT update_events_takeoff(NOW() - INTERVAL''10 minutes'', NOW());
+	SELECT update_takeoffs(NOW() - INTERVAL''20 minutes'', NOW());
+	REFRESH MATERIALIZED VIEW logbook;
+');
+
 SELECT cron.schedule('7 * * * *', '-- event updates
 	SELECT update_events_receiver_status(INTERVAL''1 day'');
 	SELECT update_events_receiver_position(INTERVAL''1 day'');
