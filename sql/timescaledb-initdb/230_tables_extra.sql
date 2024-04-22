@@ -108,3 +108,10 @@ CREATE TABLE IF NOT EXISTS screenshots (
     port                INTEGER,
     data                BYTEA
 );
+
+-- Table for elevation data
+CREATE TABLE IF NOT EXISTS elevations(
+    rid                 SERIAL PRIMARY KEY,
+
+    rast                RASTER
+);

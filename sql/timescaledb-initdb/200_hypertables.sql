@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS positions (
 
     -- additional (externally calculated) field, for PostGIS only
     location            GEOMETRY(POINT, 4326),
+    elevation           INTEGER,
 
     -- bit coded plausibility check
     plausibility        SMALLINT
@@ -147,6 +148,31 @@ CREATE TABLE IF NOT EXISTS events_sender_position (
 );
 CREATE UNIQUE INDEX idx_events_sender_position_src_call ON events_sender_position (src_call, ts);
 
+CREATE TABLE IF NOT EXISTS events_takeoff (
+    receiver_ts         TIMESTAMPTZ NOT NULL,
+
+    src_call            VARCHAR(9) NOT NULL,
+    course              SMALLINT,
+    altitude            INTEGER,
+    location            GEOMETRY(POINT, 4326),
+    event               SMALLINT
+);
+CREATE UNIQUE INDEX idx_events_takeoff_src_call ON events_takeoff (src_call, receiver_ts);
+
+CREATE TABLE IF NOT EXISTS takeoffs (
+    receiver_ts         TIMESTAMPTZ NOT NULL,
+
+    src_call            VARCHAR(9) NOT NULL,
+    course              SMALLINT,
+    event               SMALLINT,
+
+    airport_name        TEXT,
+    airport_iso2        VARCHAR(2),
+    airport_tzid        VARCHAR(80)
+);
+CREATE UNIQUE INDEX idx_takeoffs_src_call ON takeoffs (src_call, receiver_ts);
+
+
 -- create hypertables for messages tables
 SELECT create_hypertable('invalids', 'ts', chunk_time_interval => INTERVAL '10 days');
 SELECT create_hypertable('unknowns', 'ts', chunk_time_interval => INTERVAL '10 days');
@@ -155,3 +181,5 @@ SELECT create_hypertable('statuses', 'ts', chunk_time_interval => INTERVAL '10 d
 SELECT create_hypertable('events_receiver_status', 'ts', chunk_time_interval => INTERVAL '10 days');
 SELECT create_hypertable('events_receiver_position', 'ts', chunk_time_interval => INTERVAL '10 days');
 SELECT create_hypertable('events_sender_position', 'ts', chunk_time_interval => INTERVAL '10 days');
+SELECT create_hypertable('events_takeoff', 'receiver_ts', chunk_time_interval => INTERVAL '10 days');
+SELECT create_hypertable('takeoffs', 'receiver_ts', chunk_time_interval => INTERVAL '10 days');

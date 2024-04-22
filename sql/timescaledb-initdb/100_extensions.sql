@@ -1,6 +1,7 @@
 -- activate TimescaleDB, PostGIS and CRON
 CREATE EXTENSION IF NOT EXISTS timescaledb;
 CREATE EXTENSION IF NOT EXISTS postgis;
+CREATE EXTENSION IF NOT EXISTS postgis_raster;
 CREATE EXTENSION IF NOT EXISTS pg_cron;
 
 -- activate PostgreSQL performance logging
