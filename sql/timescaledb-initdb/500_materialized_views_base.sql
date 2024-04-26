@@ -162,8 +162,8 @@ AS
 WITH positions_sender_1d AS (
 	SELECT
 		receiver,
-		FIRST(ts_first, ts) AS ts_first_sender,
-		LAST(ts_last, ts) AS ts_last_sender,
+		MIN(ts_first) AS ts_first_sender,
+		MAX(ts_last) AS ts_last_sender,
 		SUM(messages) AS messages_sender
 	FROM positions_1d
 	WHERE
@@ -173,8 +173,8 @@ WITH positions_sender_1d AS (
 positions_receiver_1d AS (
 	SELECT
 		src_call,
-		FIRST(ts_first, ts) AS ts_first_position,
-		LAST(ts_last, ts) AS ts_last_position,
+		MIN(ts_first) AS ts_first_position,
+		MAX(ts_last) AS ts_last_position,
 		LAST(location, ts) AS location,
 		LAST(altitude, ts) AS altitude,
 		SUM(messages) AS messages_position
@@ -187,8 +187,8 @@ positions_receiver_1d AS (
 statuses_receiver_1d AS (
 	SELECT
 		src_call,
-		FIRST(ts_first, ts) AS ts_first_status,
-		LAST(ts_last, ts) AS ts_last_status,
+		MIN(ts_first) AS ts_first_status,
+		MAX(ts_last) AS ts_last_status,
 		LAST(version, ts) AS version,
 		LAST(platform, ts) AS platform,
 		SUM(messages) AS messages_status
