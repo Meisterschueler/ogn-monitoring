@@ -16,7 +16,6 @@ SELECT
 	s.software_version AS sender_software_version,
 	s.hardware_version AS sender_hardware_version,
 	s.original_address AS sender_original_address,
-	EXISTS (SELECT * FROM duplicates WHERE address = s.address) AS sender_is_duplicate,
 	dj.*,
 	fh.devtype AS flarm_hardware_devtype,
 	fh.manufacturer AS flarm_hardware_manufacturer,
@@ -114,6 +113,11 @@ SELECT
 		WHEN fe.expiry_date - NOW() > INTERVAL'1 day' THEN 'WARNING'
 		ELSE 'ERROR'
 	END AS check_sender_expiry_date,
+	CASE
+		WHEN array_length(dj.registration_addresses, 1) = 1 THEN 'OK'
+		WHEN array_length(dj.registration_addresses, 1) = 2 AND s.original_address IS NOT NULL AND s.original_address = ANY(dj.registration_addresses) THEN 'OK'
+		ELSE 'ERROR'
+	END AS check_ddb_registration,
 	CASE
 		WHEN o.registration IS NULL OR o.registration = '' THEN ''
 		WHEN dj.ddb_registration IS NULL OR dj.ddb_registration = '' THEN 'WARNING'

@@ -5,8 +5,9 @@ AS
 SELECT
     sq.*,
 	CASE
-		WHEN sq.ddb_registration ~ '([A-Z0-9]{1,2}\-[A-Z0-9]{3,4}|N[A-Z0-9]{1,5})' THEN 'OK'
-		ELSE 'ERROR'
+		WHEN sq.ddb_registration ~ '([A-Z0-9]{1,2}\-[A-Z0-9]{3,4}|N[A-Z0-9]{1,5})' IS FALSE THEN 'ERROR'
+		WHEN sq.registration_iso2 IS NULL THEN 'WARNING'
+		ELSE 'OK'
 	END AS check_registration_valid,
 	CASE
 		WHEN sq.registration_iso2 IS NULL OR sq.icao24bit_iso2 IS NULL THEN ''
@@ -18,13 +19,7 @@ SELECT
 		WHEN sq.ddb_aircraft_types::smallint[] && sq.registration_aircraft_types THEN 'OK'
 		WHEN sq.registration_aircraft_types = ARRAY[0]::smallint[] THEN 'GENERIC'
 		ELSE 'ERROR'
-	END AS check_ddb_registration_aircraft_type,
-	CASE
-		WHEN sq.ddb_registration_count = 0 THEN ''
-		WHEN sq.ddb_registration_count = 1 THEN 'OK'
-		WHEN sq.ddb_registration_count = 2 AND sq.ddb_registration_cn_model_count = 2 AND sq.ddb_registration_address_type_count = 1 THEN 'WARNING'
-		ELSE 'ERROR'
-	END AS check_registration_duplicate
+	END AS check_ddb_registration_aircraft_type
 FROM (
 	SELECT
 		d.address AS ddb_address,
@@ -35,6 +30,7 @@ FROM (
 		d.cn AS ddb_cn,
 		d.is_notrack AS ddb_is_notrack,
 		d.is_noident AS ddb_is_noident,
+		d.registration_addresses,
 		r.iso2 AS registration_iso2,
 		r.regex AS registration_regex,
 		r.description AS registration_description,
@@ -42,9 +38,6 @@ FROM (
 		i.iso2 AS icao24bit_iso2,
 		i.lower_limit AS icao24bit_lower_limit,
 		i.upper_limit AS icao24bit_upper_limit,
-		d.registration_count AS ddb_registration_count,
-		d.registration_address_type_count AS ddb_registration_address_type_count,
-		d.registration_cn_model_count AS ddb_registration_cn_model_count,
 
 		-- ddb: 1 = GLIDER/MOTORGLIDER, 2 = PLANE, 3 = ULTRALIGHT, 4 = HELICOPTER, 5 = DRONE, 6 = OTHER
 		-- flarm: 1 = GLIDER/MOTORGLIDER, 2 = TOWPLANE, 3 = HELICOPTER, 4 = PARACHUTE, 5 = DROPPLANE,
@@ -67,18 +60,16 @@ FROM (
 		END AS ddb_aircraft_types
 	FROM (
 		SELECT
-			ddb.address,
-			ddb.address_type,
-			ddb.model,
-			ddb.model_type,
-			ddb.registration,
-			ddb.cn,
-			ddb.is_notrack,
-			ddb.is_noident,
-			sum(CASE WHEN ddb.registration <> '' THEN 1 ELSE 0 END) OVER (PARTITION BY ddb.registration) AS registration_count,
-			sum(CASE WHEN ddb.registration <> '' THEN 1 ELSE 0 END) OVER (PARTITION BY ddb.registration, ddb.address_type) AS registration_address_type_count,
-			sum(CASE WHEN ddb.registration <> '' THEN 1 ELSE 0 END) OVER (PARTITION BY ddb.registration, ddb.cn, ddb.model) AS registration_cn_model_count
+			ddb.*,
+			sa.addresses AS registration_addresses
 		FROM ddb
+		LEFT JOIN (
+			SELECT
+				registration,
+				ARRAY_AGG(address) AS addresses
+			FROM ddb
+			GROUP BY 1
+		) AS sa ON ddb.registration = sa.registration
 	) AS d
 	LEFT JOIN registrations r ON d.registration ~ similar_to_escape(r.regex)
 	LEFT JOIN icao24bit i ON d.address >= i.lower_limit AND d.address <= i.upper_limit
