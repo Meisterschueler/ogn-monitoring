@@ -33,7 +33,7 @@ app.post('/upload_screenshot', upload.single('file'), async (req, res) => {
         return handleError(res, 400, 'Missing file');
     }
 
-    const regex = /^(?<receiver>[A-Za-z][A-Za-z0-9]{2,8})_(?<freq>\d+\.\d+)MHz_(?<wtf>\d+\.\d+)Msps_(?<epoch>\d+)sec\.jpg$/;
+    const regex = /^(?<receiver>[A-Za-z][A-Za-z0-9]{2,8})_(?<freq>\d+\.\d+)MHz_(?<wtf>\d+\.\d+)Msps_(?<epoch>\d+)sec\.(jpg|png)$/;
     const match = regex.exec(filename);
 
     if (!match) {
@@ -81,7 +81,7 @@ app.post('/upload_measurement', upload.single('file'), async (req, res) => {
     if (!filename) {
         return handleError(res, 400, 'Missing file');
     }
-    const regex = /^(?<receiver>[A-Za-z][A-Za-z0-9]{2,8})_g(?<gain>\d{1,2}\.\d)_(?<epoch>\d+)sec\.csv$/;
+    const regex = /^(?<receiver>[A-Za-z][A-Za-z0-9]{2,8})_g(?<gain>((\d*\.)?\d+|\d+\.))_(?<epoch>\d+)sec\.csv$/;
     const match = regex.exec(filename);
 
     if (!match) {

@@ -1,15 +1,15 @@
 # Rust as the base image
-FROM rust:1.67-slim-bullseye as builder
+FROM rust:1.78-slim-bookworm as builder
 
 # Build the app
 RUN apt update && \
-    apt install -y git && \ 
+    apt install -y git build-essential && \ 
     git clone https://github.com/Meisterschueler/ogn-client-rs.git && \
     cd ogn-client-rs && \
     cargo install --path .
 
 # Create a small final image
-FROM debian:bullseye-slim
+FROM debian:bookworm-slim
 COPY --from=builder /usr/local/cargo/bin/ogn-client /usr/local/bin/ogn-client
 
 CMD ["ogn-client"]

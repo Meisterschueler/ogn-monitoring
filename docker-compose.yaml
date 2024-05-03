@@ -1,5 +1,3 @@
-version: '3'
-
 services:
   timescaledb:
     image: xbgmsharp/timescaledb-postgis:latest
@@ -76,6 +74,8 @@ services:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-pgadmin4@pgadmin.org}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
       PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+      - ${DOCKERVOLUMES}/pgadmin4:/var/lib/pgadmin
     networks:
       - monitoring
 
@@ -89,7 +89,7 @@ services:
     expose:
       - 3000
     environment:
-      GF_INSTALL_PLUGINS: grafana-worldmap-panel,pr0ps-trackmap-panel,nline-plotlyjs-panel
+      GF_INSTALL_PLUGINS: grafana-worldmap-panel,pr0ps-trackmap-panel,nline-plotlyjs-panel,volkovlabs-image-panel
       GF_AUTH_ANONYMOUS_ENABLED: 'True'
       GF_SERVER_DOMAIN: 'localhost'
       GF_DATABASE_URL: 'postgres://${GRAFANA_USER}:${GRAFANA_PASSWORD}@timescaledb:5432/${GRAFANA_DB}'
