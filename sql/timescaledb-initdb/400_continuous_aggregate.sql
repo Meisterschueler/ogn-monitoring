@@ -70,8 +70,8 @@ SELECT
 	src_call,
 	receiver,
 
-	FIRST(ts_first, ts) AS ts_first,
-	LAST(ts_last, ts) AS ts_last,
+	MIN(ts_first) AS ts_first,
+	MAX(ts_last) AS ts_last,
 
 	LAST(location, ts) AS location,
 	LAST(altitude, ts) AS altitude,
@@ -99,8 +99,8 @@ SELECT
 	dst_call,
 	receiver,
 
-	FIRST(ts, ts) AS ts_first,
-	LAST(ts, ts) AS ts_last,
+	MIN(ts) AS ts_first,
+	MAX(ts) AS ts_last,
 	LAST(location, ts) AS location,
 	LAST(altitude, ts) AS altitude,
 
@@ -119,9 +119,9 @@ SELECT
 	time_bucket('15 minutes', ts) AS ts,
 	src_call,
 
-	COUNT(*) FILTER (WHERE dst_call = 'OGFLR') AS messages_ogflr,
-	COUNT(*) FILTER (WHERE dst_call = 'OGNFNT') AS messages_ognfnt,
-	COUNT(*) FILTER (WHERE dst_call = 'OGNTRK') AS messages_ogntrk,
+	SUM(messages) FILTER (WHERE dst_call = 'OGFLR') AS messages_ogflr,
+	SUM(messages) FILTER (WHERE dst_call = 'OGNFNT') AS messages_ognfnt,
+	SUM(messages) FILTER (WHERE dst_call = 'OGNTRK') AS messages_ogntrk,
 	COUNT(DISTINCT receiver) FILTER (WHERE dst_call = 'OGFLR') AS receivers_ogflr,
 	COUNT(DISTINCT receiver) FILTER (WHERE dst_call = 'OGNFNT') AS receivers_ognfnt,
 	COUNT(DISTINCT receiver) FILTER (WHERE dst_call = 'OGNTRK') AS receivers_ogntrk,
@@ -172,9 +172,9 @@ SELECT
 	time_bucket('15 minutes', ts) AS ts,
 	receiver,
 
-	COUNT(*) FILTER (WHERE dst_call = 'OGFLR') AS messages_ogflr,
-	COUNT(*) FILTER (WHERE dst_call = 'OGNFNT') AS messages_ognfnt,
-	COUNT(*) FILTER (WHERE dst_call = 'OGNTRK') AS messages_ogntrk,
+	SUM(messages) FILTER (WHERE dst_call = 'OGFLR') AS messages_ogflr,
+	SUM(messages) FILTER (WHERE dst_call = 'OGNFNT') AS messages_ognfnt,
+	SUM(messages) FILTER (WHERE dst_call = 'OGNTRK') AS messages_ogntrk,
 	COUNT(DISTINCT src_call) FILTER (WHERE dst_call = 'OGFLR') AS senders_ogflr,
 	COUNT(DISTINCT src_call) FILTER (WHERE dst_call = 'OGNFNT') AS senders_ognfnt,
 	COUNT(DISTINCT src_call) FILTER (WHERE dst_call = 'OGNTRK') AS senders_ogntrk,
