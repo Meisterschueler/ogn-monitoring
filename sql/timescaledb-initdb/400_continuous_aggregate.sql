@@ -289,7 +289,8 @@ SELECT
 	COUNT(*) AS messages
 FROM positions
 WHERE
-	dst_call IN ('OGFLR', 'OGNFNT', 'OGNTRK')
+	src_call NOT LIKE 'RND%'
+	AND dst_call IN ('OGFLR', 'OGNFNT', 'OGNTRK')
 	AND address IS NOT NULL
 GROUP BY 1, 2, 3
 WITH NO DATA;
