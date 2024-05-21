@@ -12,7 +12,7 @@ hwver,devtype,manufacturer,model
 20,???,"Swift Avionics","OzFLARM / miniOZ"
 30,ET06,"EDIATec","ECW100"
 50,TRXFLM,"AIR Avionics","TRX-1500/2000"
-65,PowerFLARM-AM,"Flarm","PowerFLARM Applicaton Module"
+65,PowerFLARM-AM,"Flarm","PowerFLARM Applicaton Module / LXNAV Power Mouse IGC"
 67,PowerFLARM-Core,"Flarm","PowerFLARM Core"
 68,PowerFLARM-Core,"Flarm","PowerFLARM Core"
 83,PowerFLARM-Fusion,"Flarm","PowerFLARM Fusion"
