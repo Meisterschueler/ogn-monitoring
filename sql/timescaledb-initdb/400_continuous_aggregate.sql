@@ -90,6 +90,34 @@ WHERE dst_call IN ('OGFLR', 'OGNFNT', 'OGNTRK')
 GROUP BY 1, 2, 3
 WITH NO DATA;
 
+CREATE MATERIALIZED VIEW positions_sender_1d
+WITH (timescaledb.continuous, timescaledb.materialized_only = FALSE)
+AS
+SELECT
+	time_bucket('1 day', ts) AS ts,
+	src_call,
+	receiver,
+
+	MIN(ts_first) AS ts_first,
+	MAX(ts_last) AS ts_last,
+
+	LAST(location, ts) AS location,
+	LAST(altitude, ts) AS altitude,
+	
+	MIN(distance_min) AS distance_min,
+	MAX(distance_max) AS distance_max,
+	MIN(altitude_min) AS altitude_min,
+	MAX(altitude_max) AS altitude_max,
+	MIN(normalized_quality_min) AS normalized_quality_min,
+	MAX(normalized_quality_max) AS normalized_quality_max,
+
+	SUM(messages) AS messages,
+	SUM(buckets_5m) AS buckets_5m,
+	COUNT(*) AS buckets_15m
+FROM positions_sender_1d
+GROUP BY 1, 2, 3
+WITH NO DATA;
+
 CREATE MATERIALIZED VIEW positions_receiver_15m
 WITH (timescaledb.continuous, timescaledb.materialized_only = FALSE)
 AS
@@ -109,6 +137,27 @@ SELECT
 FROM positions_5m
 WHERE
 	dst_call IN ('OGNSDR', 'APRS')
+GROUP BY 1, 2, 3, 4
+WITH NO DATA;
+
+CREATE MATERIALIZED VIEW positions_receiver_1d
+WITH (timescaledb.continuous, timescaledb.materialized_only = FALSE)
+AS
+SELECT
+	time_bucket('1 day', ts) AS ts,
+	src_call,
+	dst_call,
+	receiver,
+
+	MIN(ts) AS ts_first,
+	MAX(ts) AS ts_last,
+	LAST(location, ts) AS location,
+	LAST(altitude, ts) AS altitude,
+
+	SUM(messages) AS messages,
+	SUM(buckets_5m) AS buckets_5m,
+	COUNT(*) AS buckets_15m
+FROM positions_receiver_15m
 GROUP BY 1, 2, 3, 4
 WITH NO DATA;
 
@@ -322,9 +371,9 @@ GROUP BY 1, 2, 3
 WITH NO DATA;
 
 
--- aggregated statuses - no materialization because of small data base
-CREATE MATERIALIZED VIEW statuses_1d
-WITH (timescaledb.continuous, timescaledb.materialized_only = FALSE)
+-- aggregated statuses
+CREATE MATERIALIZED VIEW statuses_15m
+WITH (timescaledb.continuous)
 AS
 SELECT
 	time_bucket('1 day', ts) AS ts,
@@ -348,6 +397,74 @@ WHERE
 GROUP BY 1, 2, 3, 4
 WITH NO DATA;
 
+CREATE MATERIALIZED VIEW statuses_1d
+WITH (timescaledb.continuous, timescaledb.materialized_only = FALSE)
+AS
+SELECT
+	time_bucket('1 day', ts) AS ts,
+	src_call,
+	dst_call,
+	receiver,
+
+	FIRST(ts, ts) AS ts_first,
+	LAST(ts, ts) AS ts_last,
+	LAST(version, ts) AS version,
+	LAST(platform, ts) AS platform,
+
+	SUM(messages) AS messages,
+	COUNT(*) AS buckets_15m
+FROM statuses_15m
+GROUP BY 1, 2, 3, 4
+WITH NO DATA;
+
+CREATE MATERIALIZED VIEW statuses_sender_1d
+WITH (timescaledb.continuous, timescaledb.materialized_only = FALSE)
+AS
+SELECT
+	time_bucket('1 day', ts) AS ts,
+	src_call,
+	dst_call,
+	receiver,
+
+	FIRST(ts, ts) AS ts_first,
+	LAST(ts, ts) AS ts_last,
+	LAST(version, ts) AS version,
+	LAST(platform, ts) AS platform,
+
+	SUM(messages) AS messages,
+	COUNT(*) AS buckets_15m
+FROM statuses_15m
+WHERE
+	dst_call IN ('OGFLR', 'OGNFNT', 'OGNTRK')
+	OR (dst_call = 'APRS' AND receiver NOT LIKE 'GLIDERN%')
+GROUP BY 1, 2, 3, 4
+WITH NO DATA;
+
+CREATE MATERIALIZED VIEW statuses_receiver_1d
+WITH (timescaledb.continuous, timescaledb.materialized_only = FALSE)
+AS
+SELECT
+	time_bucket('1 day', ts) AS ts,
+	src_call,
+	dst_call,
+	receiver,
+
+	FIRST(ts, ts) AS ts_first,
+	LAST(ts, ts) AS ts_last,
+	LAST(version, ts) AS version,
+	LAST(platform, ts) AS platform,
+
+	SUM(messages) AS messages,
+	COUNT(*) AS buckets_15m
+FROM statuses_15m
+WHERE
+	dst_call = 'OGNSDR'	
+	OR (dst_call = 'APRS' AND receiver LIKE 'GLIDERN%')
+GROUP BY 1, 2, 3, 4
+WITH NO DATA;
+
+		
+
 CREATE MATERIALIZED VIEW statistics_dst_call_15m
 WITH (timescaledb.continuous)
 AS
@@ -359,4 +476,35 @@ SELECT
 	COUNT(*) AS messages
 FROM positions
 GROUP BY 1, 2, 3
+WITH NO DATA;
+
+CREATE MATERIALIZED VIEW online_receiver_15m
+WITH (timescaledb.continuous)
+AS
+SELECT
+	time_bucket('5 minutes', ts) AS ts,
+	src_call,
+
+	AVG(ts - receiver_ts) AS latency,
+	COUNT(*) AS messages
+FROM statuses
+WHERE
+	(
+		dst_call = 'OGNSDR'
+		OR (dst_call = 'APRS' AND receiver LIKE 'GLIDERN%')
+	)
+GROUP BY 1, 2
+WITH NO DATA;
+
+CREATE MATERIALIZED VIEW online_receiver_1d
+WITH (timescaledb.continuous, timescaledb.materialized_only = FALSE)
+AS
+SELECT
+	time_bucket('1 day', ts) AS ts,
+	src_call,
+
+	SUM(messages) AS messages,
+	COUNT(*) AS buckets_5m
+FROM online_receiver_5m
+GROUP BY 1, 2
 WITH NO DATA;

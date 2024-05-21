@@ -159,69 +159,61 @@ CREATE UNIQUE INDEX duplicates_idx ON duplicates (src_call, original_address);
 -- cost: 16s
 CREATE MATERIALIZED VIEW receivers
 AS
-WITH positions_sender_1d AS (
+WITH positions_sender AS (
 	SELECT
 		receiver,
-		MIN(ts_first) AS ts_first_sender,
-		MAX(ts_last) AS ts_last_sender,
-		SUM(messages) AS messages_sender
-	FROM positions_1d
-	WHERE
-		dst_call IN ('OGFLR', 'OGNFNT', 'OGNTRK')
+		MIN(ts_first) AS ts_first,
+		MAX(ts_last) AS ts_last,
+		SUM(messages) AS messages
+	FROM positions_sender_1d
 	GROUP BY 1
 ),
-positions_receiver_1d AS (
+positions_receiver AS (
 	SELECT
 		src_call,
-		MIN(ts_first) AS ts_first_position,
-		MAX(ts_last) AS ts_last_position,
+		MIN(ts_first) AS ts_first,
+		MAX(ts_last) AS ts_last,
 		LAST(location, ts) AS location,
 		LAST(altitude, ts) AS altitude,
-		SUM(messages) AS messages_position
-	FROM positions_1d
-	WHERE
-		dst_call = 'OGNSDR'
-		OR (dst_call = 'APRS' AND receiver LIKE 'GLIDERN%')
+		SUM(messages) AS messages
+	FROM positions_receiver_1d
 	GROUP BY 1
 ),
-statuses_receiver_1d AS (
+statuses_receiver AS (
 	SELECT
 		src_call,
-		MIN(ts_first) AS ts_first_status,
-		MAX(ts_last) AS ts_last_status,
+		MIN(ts_first) AS ts_first,
+		MAX(ts_last) AS ts_last,
 		LAST(version, ts) AS version,
 		LAST(platform, ts) AS platform,
-		SUM(messages) AS messages_status
-	FROM statuses_1d
-	WHERE
-		dst_call = 'OGNSDR'	
-		OR (dst_call = 'APRS' AND receiver LIKE 'GLIDERN%')
+		SUM(messages) AS messages
+	FROM statuses_receiver_1d
 	GROUP BY 1
 )
 
 SELECT 
 	CASE
-		WHEN ps1d.receiver IS NOT NULL THEN ps1d.receiver
-		WHEN pr1d.src_call IS NOT NULL THEN pr1d.src_call
-		WHEN sr1d.src_call IS NOT NULL THEN sr1d.src_call
+		WHEN ps.receiver IS NOT NULL THEN ps.receiver
+		WHEN pr.src_call IS NOT NULL THEN pr.src_call
+		WHEN sr.src_call IS NOT NULL THEN sr.src_call
 	END AS src_call,
 	
-	ps1d.ts_first_sender,
-	ps1d.ts_last_sender,
-	ps1d.messages_sender,
+	ps.ts_first AS ts_first_sender,
+	ps.ts_last AS ts_last_sender,
+	ps.messages AS messages_sender,
 	
-	pr1d.ts_first_position,
-	pr1d.ts_last_position,
-	pr1d.location,
-	pr1d.altitude,
-	pr1d.messages_position,
+	pr.ts_first AS ts_first_position,
+	pr.ts_last AS ts_last_position,
+	pr.location,
+	pr.altitude,
+	pr.messages AS messages_position,
 	
-	sr1d.ts_first_status,
-	sr1d.ts_last_status,
-	sr1d.version,
-	sr1d.platform,
-	sr1d.messages_status
-FROM positions_sender_1d AS ps1d
-FULL OUTER JOIN positions_receiver_1d AS pr1d ON pr1d.src_call = ps1d.receiver
-FULL OUTER JOIN statuses_receiver_1d AS sr1d ON sr1d.src_call = COALESCE(pr1d.src_call, ps1d.receiver);
+	sr.ts_first AS ts_first_status,
+	sr.ts_last AS ts_last_status,
+	sr.version,
+	sr.platform,
+	sr.messages AS messages_status
+FROM positions_sender AS ps
+FULL OUTER JOIN positions_receiver AS pr ON pr.src_call = ps.receiver
+FULL OUTER JOIN statuses_receiver AS sr ON sr.src_call = COALESCE(pr.src_call, ps.receiver);
 CREATE UNIQUE INDEX receivers_idx ON receivers (src_call);

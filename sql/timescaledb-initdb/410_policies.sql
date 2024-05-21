@@ -23,6 +23,14 @@ SELECT add_continuous_aggregate_policy('positions_sender_15m',
 ALTER MATERIALIZED VIEW positions_sender_15m SET (timescaledb.compress = true);
 SELECT add_compression_policy('positions_sender_15m', compress_after => INTERVAL '4 hours');
 
+SELECT add_continuous_aggregate_policy('positions_sender_1d',
+  start_offset => INTERVAL '8 days',
+  end_offset => INTERVAL '1 day',
+  initial_start => '2000-01-01 00:00:20'::TIMESTAMPTZ,
+  schedule_interval => INTERVAL '1 day');
+ALTER MATERIALIZED VIEW positions_sender_1d SET (timescaledb.compress = true);
+SELECT add_compression_policy('positions_sender_1d', compress_after => INTERVAL '16 days');
+
 SELECT add_continuous_aggregate_policy('positions_receiver_15m',
   start_offset => INTERVAL '2 hours',
   end_offset => INTERVAL '15 minutes',
@@ -30,6 +38,14 @@ SELECT add_continuous_aggregate_policy('positions_receiver_15m',
   schedule_interval => INTERVAL '15 minutes');
 ALTER MATERIALIZED VIEW positions_receiver_15m SET (timescaledb.compress = true);
 SELECT add_compression_policy('positions_receiver_15m', compress_after => INTERVAL '4 hours');
+
+SELECT add_continuous_aggregate_policy('positions_receiver_1d',
+  start_offset => INTERVAL '8 days',
+  end_offset => INTERVAL '1 day',
+  initial_start => '2000-01-01 00:00:20'::TIMESTAMPTZ,
+  schedule_interval => INTERVAL '1 day');
+ALTER MATERIALIZED VIEW positions_receiver_1d SET (timescaledb.compress = true);
+SELECT add_compression_policy('positions_receiver_1d', compress_after => INTERVAL '16 days');
 
 SELECT add_continuous_aggregate_policy('statistics_sender_15m',
   start_offset => INTERVAL '2 hours',
@@ -93,6 +109,14 @@ SELECT add_compression_policy('statistics_dst_call_15m', compress_after => INTER
 
 
 -- statuses
+SELECT add_continuous_aggregate_policy('statuses_15m',
+  start_offset => INTERVAL '2 hours',
+  end_offset => INTERVAL '15 minutes',
+  initial_start => '2000-01-01 00:00:40'::TIMESTAMPTZ,
+  schedule_interval => INTERVAL'15 minutes');
+ALTER MATERIALIZED VIEW statuses_15m SET (timescaledb.compress = true);
+SELECT add_compression_policy('statuses_15m', compress_after => INTERVAL '4 hours');
+
 SELECT add_continuous_aggregate_policy('statuses_1d',
   start_offset => INTERVAL '8 days',
   end_offset => INTERVAL '1 day',
@@ -100,3 +124,36 @@ SELECT add_continuous_aggregate_policy('statuses_1d',
   schedule_interval => INTERVAL '1 day');
 ALTER MATERIALIZED VIEW statuses_1d SET (timescaledb.compress = true);
 SELECT add_compression_policy('statuses_1d', compress_after => INTERVAL '16 days');
+
+SELECT add_continuous_aggregate_policy('statuses_sender_1d',
+  start_offset => INTERVAL '8 days',
+  end_offset => INTERVAL '1 day',
+  initial_start => '2000-01-01 00:00:00'::TIMESTAMPTZ,
+  schedule_interval => INTERVAL '1 day');
+ALTER MATERIALIZED VIEW statuses_sender_1d SET (timescaledb.compress = true);
+SELECT add_compression_policy('statuses_sender_1d', compress_after => INTERVAL '16 days');
+
+SELECT add_continuous_aggregate_policy('statuses_receiver_1d',
+  start_offset => INTERVAL '8 days',
+  end_offset => INTERVAL '1 day',
+  initial_start => '2000-01-01 00:00:00'::TIMESTAMPTZ,
+  schedule_interval => INTERVAL '1 day');
+ALTER MATERIALIZED VIEW statuses_receiver_1d SET (timescaledb.compress = true);
+SELECT add_compression_policy('statuses_receiver_1d', compress_after => INTERVAL '16 days');
+
+-- online
+SELECT add_continuous_aggregate_policy('online_receiver_5m',
+  start_offset => INTERVAL '1 hour',
+  end_offset => INTERVAL '5 minutes',
+  initial_start => '2000-01-01 00:00:00'::TIMESTAMPTZ,
+  schedule_interval => INTERVAL'5 minutes');
+ALTER MATERIALIZED VIEW online_receiver_5m SET (timescaledb.compress = true);
+SELECT add_compression_policy('online_receiver_5m', compress_after => INTERVAL '2 hours');
+
+SELECT add_continuous_aggregate_policy('online_receiver_1d',
+  start_offset => INTERVAL '8 days',
+  end_offset => INTERVAL '1 day',
+  initial_start => '2000-01-01 00:00:00'::TIMESTAMPTZ,
+  schedule_interval => INTERVAL '1 day');
+ALTER MATERIALIZED VIEW online_receiver_1d SET (timescaledb.compress = true);
+SELECT add_compression_policy('online_receiver_1d', compress_after => INTERVAL '16 days');

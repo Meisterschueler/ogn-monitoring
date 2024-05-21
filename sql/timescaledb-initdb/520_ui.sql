@@ -332,8 +332,7 @@ CREATE MATERIALIZED VIEW ranking
 AS
 WITH records AS (
 	SELECT
-		r1d.*,
-		1.0 AS online
+		r1d.*
 	FROM records_1d AS r1d
 	INNER JOIN (
 		SELECT
@@ -360,6 +359,13 @@ WITH records AS (
 		r1d.ts > NOW() - INTERVAL '30 days'
 		AND COALESCE(sq2.position_jumped, false) IS FALSE
 	ORDER BY ts, receiver
+),
+online_1d AS (
+	SELECT
+		ts,
+		src_call,
+		CAST(buckets_5m AS FLOAT) / MAX(buckets_5m) OVER (PARTITION BY ts) AS online
+	FROM online_receiver_1d
 )
 
 SELECT
@@ -383,7 +389,7 @@ FROM (
 			sq2.src_call,
 			MAX(COALESCE(sq2.distance_max, 0)) OVER (PARTITION BY sq2.receiver ORDER BY sq2.ts ROWS BETWEEN 30 PRECEDING AND CURRENT ROW) AS distance_max,
 			AVG(COALESCE(sq2.distance_max, 0)) OVER (PARTITION BY sq2.receiver ORDER BY sq2.ts ROWS BETWEEN 30 PRECEDING AND CURRENT ROW) AS distance_avg,
-			AVG(COALESCE(sq2.online, 0)) OVER (PARTITION BY sq2.receiver ORDER BY sq2.ts ROWS BETWEEN 30 PRECEDING AND CURRENT ROW) AS online
+			AVG(COALESCE(sq2.online, 0)) OVER (PARTITION BY sq2.src_call ORDER BY sq2.ts ROWS BETWEEN 30 PRECEDING AND CURRENT ROW) AS online
 		FROM (
 			SELECT
 				days_and_receivers.ts,
@@ -393,7 +399,8 @@ FROM (
 				r1d.ts_first,
 				r1d.ts_last,
 				r1d.src_call,
-				r1d.online
+
+				o1d.online
 			FROM
 			(
 				SELECT
@@ -403,6 +410,7 @@ FROM (
 					(SELECT DISTINCT receiver FROM records) AS inner2
 			) AS days_and_receivers
 			LEFT JOIN records AS r1d ON r1d.ts = days_and_receivers.ts AND r1d.receiver = days_and_receivers.receiver
+			INNER JOIN online_1d AS o1d ON r1d.ts = o1d.ts AND r1d.receiver = o1d.src_call
 		) AS sq2
 		INNER JOIN receivers_joined AS r ON sq2.receiver = r.src_call
 	) AS sq3
