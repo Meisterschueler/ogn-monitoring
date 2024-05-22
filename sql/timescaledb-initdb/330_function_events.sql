@@ -243,7 +243,7 @@ EXECUTE '
 	SELECT
 		ts,
 		src_call,
-	
+
 		address_type,
 		aircraft_type,
 		is_stealth,
@@ -252,12 +252,16 @@ EXECUTE '
 		software_version,
 		hardware_version,
 		original_address,
-	
-		event
+
+		CASE
+			WHEN event = -1 THEN 0
+			WHEN event = 0 THEN NULL
+			ELSE event
+		END as event
 	FROM (
 		SELECT
 			*,
-		
+
 			-- event
 			-- bit 0: address_type change
 			-- bit 1: aircraft_type change
@@ -268,59 +272,68 @@ EXECUTE '
 			-- bit 6: hardware_version change
 			-- bit 7: original_address change
 			0
-			+ CASE WHEN address_type_prev IS NOT NULL AND address_type_prev != address_type THEN 1 ELSE 0 END
-			+ CASE WHEN aircraft_type_prev IS NOT NULL AND aircraft_type_prev != aircraft_type THEN 2 ELSE 0 END
-			+ CASE WHEN is_stealth_prev IS NOT NULL AND is_stealth_prev != is_stealth THEN 4 ELSE 0 END
-			+ CASE WHEN is_notrack_prev IS NOT NULL AND is_notrack_prev != is_notrack THEN 8 ELSE 0 END
-			+ CASE WHEN address_prev IS NOT NULL AND address_prev != address THEN 16 ELSE 0 END
-			+ CASE WHEN software_version_prev IS NOT NULL AND software_version_prev != software_version THEN 32 ELSE 0 END
-			+ CASE WHEN hardware_version_prev IS NOT NULL AND hardware_version_prev != hardware_version THEN 64 ELSE 0 END
-			+ CASE WHEN original_address_prev IS NOT NULL AND original_address_prev != original_address THEN 128 ELSE 0 END
-			AS event,
-		
-			ROW_NUMBER() OVER (PARTITION BY src_call, address_type, aircraft_type, is_stealth, is_notrack, address, software_version, hardware_version, original_address ORDER BY ts) AS rn
+			+ CASE WHEN address_type_p IS NULL THEN -1 ELSE 0 END
+			+ CASE WHEN address_type_pp IS NOT NULL AND address_type_p IS NOT NULL AND address_type_pp = address_type_p AND address_type_p != address_type AND address_type_n IS NOT NULL AND address_type_n = address_type THEN 1 ELSE 0 END
+			+ CASE WHEN address_type_pp IS NOT NULL AND address_type_p IS NOT NULL AND aircraft_type_pp = aircraft_type_p AND aircraft_type_p != aircraft_type AND aircraft_type_n IS NOT NULL AND aircraft_type_n = aircraft_type THEN 2 ELSE 0 END
+			+ CASE WHEN address_type_pp IS NOT NULL AND address_type_p IS NOT NULL AND is_stealth_pp = is_stealth_p AND is_stealth_p != is_stealth AND is_stealth_n IS NOT NULL AND is_stealth_n = is_stealth THEN 4 ELSE 0 END
+			+ CASE WHEN address_type_pp IS NOT NULL AND address_type_p IS NOT NULL AND is_notrack_pp = is_notrack_p AND is_notrack_p != is_notrack AND is_notrack_n IS NOT NULL AND is_notrack_n = is_notrack THEN 8 ELSE 0 END
+			+ CASE WHEN address_type_pp IS NOT NULL AND address_type_p IS NOT NULL AND address_pp = address_p AND address_p != address AND address_n IS NOT NULL AND address_n = address THEN 16 ELSE 0 END
+			+ CASE WHEN address_type_pp IS NOT NULL AND address_type_p IS NOT NULL AND software_version IS NOT NULL AND (software_version_p IS NULL OR software_version_p != software_version) THEN 32 ELSE 0 END
+			+ CASE WHEN address_type_pp IS NOT NULL AND address_type_p IS NOT NULL AND hardware_version IS NOT NULL AND (hardware_version_p IS NULL OR hardware_version_p != hardware_version) THEN 64 ELSE 0 END
+			+ CASE WHEN address_type_pp IS NOT NULL AND address_type_p IS NOT NULL AND original_address IS NOT NULL AND (original_address_p IS NULL OR original_address_p != original_address) THEN 128 ELSE 0 END
+			AS event
 		FROM (
 			SELECT
 				*,
-		
-				LAG(address_type) OVER (PARTITION BY src_call ORDER BY ts) AS address_type_prev,
-				LAG(aircraft_type) OVER (PARTITION BY src_call ORDER BY ts) AS aircraft_type_prev,
-				LAG(is_stealth) OVER (PARTITION BY src_call ORDER BY ts) AS is_stealth_prev,
-				LAG(is_notrack) OVER (PARTITION BY src_call ORDER BY ts) AS is_notrack_prev,
-				LAG(address) OVER (PARTITION BY src_call ORDER BY ts) AS address_prev,
-				LAG(software_version) OVER (PARTITION BY src_call ORDER BY ts) AS software_version_prev,
-				LAG(hardware_version) OVER (PARTITION BY src_call ORDER BY ts) AS hardware_version_prev,
-				LAG(original_address) OVER (PARTITION BY src_call ORDER BY ts) AS original_address_prev
+
+				LAG(address_type, 2) OVER (PARTITION BY src_call ORDER BY ts) AS address_type_pp,
+				LAG(address_type) OVER (PARTITION BY src_call ORDER BY ts) AS address_type_p,
+				LEAD(address_type) OVER (PARTITION BY src_call ORDER BY ts) AS address_type_n,
+				LAG(aircraft_type, 2) OVER (PARTITION BY src_call ORDER BY ts) AS aircraft_type_pp,
+				LAG(aircraft_type) OVER (PARTITION BY src_call ORDER BY ts) AS aircraft_type_p,
+				LEAD(aircraft_type) OVER (PARTITION BY src_call ORDER BY ts) AS aircraft_type_n,
+				LAG(is_stealth, 2) OVER (PARTITION BY src_call ORDER BY ts) AS is_stealth_pp,
+				LAG(is_stealth) OVER (PARTITION BY src_call ORDER BY ts) AS is_stealth_p,
+				LEAD(is_stealth) OVER (PARTITION BY src_call ORDER BY ts) AS is_stealth_n,
+				LAG(is_notrack, 2) OVER (PARTITION BY src_call ORDER BY ts) AS is_notrack_pp,
+				LAG(is_notrack) OVER (PARTITION BY src_call ORDER BY ts) AS is_notrack_p,
+				LEAD(is_notrack) OVER (PARTITION BY src_call ORDER BY ts) AS is_notrack_n,
+				LAG(address, 2) OVER (PARTITION BY src_call ORDER BY ts) AS address_pp,
+				LAG(address) OVER (PARTITION BY src_call ORDER BY ts) AS address_p,
+				LEAD(address) OVER (PARTITION BY src_call ORDER BY ts) AS address_n,
+				LAG(software_version) OVER (PARTITION BY src_call ORDER BY ts) AS software_version_p,
+				LAG(hardware_version) OVER (PARTITION BY src_call ORDER BY ts) AS hardware_version_p,
+				LAG(original_address) OVER (PARTITION BY src_call ORDER BY ts) AS original_address_p
 			FROM (
 				SELECT
 					ts,
 					src_call,
-		
+				
 					address_type,
 					aircraft_type,
 					is_stealth,
 					is_notrack,
 					address,
-					FIRST_VALUE(software_version) OVER (PARTITION BY inner_group ORDER BY ts) AS software_version,
-					FIRST_VALUE(hardware_version) OVER (PARTITION BY inner_group ORDER BY ts) AS hardware_version,
-					FIRST_VALUE(original_address) OVER (PARTITION BY inner_group ORDER BY ts) AS original_address
-		
+				
+					FIRST_VALUE(software_version) OVER (PARTITION BY src_call, inner_group ORDER BY ts) AS software_version,
+					FIRST_VALUE(hardware_version) OVER (PARTITION BY src_call, inner_group ORDER BY ts) AS hardware_version,
+					FIRST_VALUE(original_address) OVER (PARTITION BY src_call, inner_group ORDER BY ts) AS original_address
 				FROM (
 					SELECT	
 						*,
-				
+					
 						SUM(
 							CASE
 								WHEN software_version IS NOT NULL OR hardware_version IS NOT NULL OR original_address IS NOT NULL
 								THEN 1
 								ELSE 0
 							END
-						) OVER (PARTITION BY src_call, address_type, aircraft_type, is_stealth, is_notrack, address ORDER BY ts) AS inner_group				
+						) OVER (PARTITION BY src_call ORDER BY ts) AS inner_group
 					FROM (
 						SELECT
 							ts,
 							src_call,
-				
+					
 							address_type,
 							aircraft_type,
 							is_stealth,
@@ -335,13 +348,13 @@ EXECUTE '
 							AND src_call NOT LIKE ''RND%''
 							AND dst_call IN (''OGFLR'', ''OGNFNT'', ''OGNTRK'')
 							AND address IS NOT NULL
-			
+					
 						UNION
 					
 						SELECT
 							ts,
 							src_call,
-				
+					
 							address_type,
 							aircraft_type,
 							is_stealth,
@@ -355,6 +368,7 @@ EXECUTE '
 								*,
 								ROW_NUMBER() OVER (PARTITION BY src_call ORDER BY ts DESC) AS rn
 							FROM events_sender_position
+							WHERE ts <  (SELECT ts_start FROM range_to_compute)
 						) AS sq
 						WHERE sq.rn = 1
 					) AS sq
@@ -363,8 +377,8 @@ EXECUTE '
 		) AS sq4
 	) AS sq5
 	WHERE
-		ts BETWEEN (SELECT ts_start FROM range_to_compute) AND (SELECT ts_end FROM range_to_compute)
-		AND (rn = 1 OR event != 0)
+		event != 0
+		AND ts BETWEEN (SELECT ts_start FROM range_to_compute) AND (SELECT ts_end FROM range_to_compute)
 	ORDER BY 1
 	ON CONFLICT DO NOTHING;
 	';
