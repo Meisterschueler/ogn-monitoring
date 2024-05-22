@@ -466,9 +466,10 @@ SELECT
 	time_bucket('1 day', ts) AS ts,
 	src_call,
 
-	COUNT(DISTINCT ts) AS buckets_5m,
-	SUM(messages) AS messages
-FROM positions_5m
+	COUNT(*) AS messages,
+	COUNT(DISTINCT time_bucket('5 minutes', ts)) AS buckets_5m,
+	AVG(ts - receiver_ts) AS latency
+FROM statuses
 WHERE
 	dst_call = 'OGNSDR'
 	OR (dst_call = 'APRS' AND receiver LIKE 'GLIDERN%')
