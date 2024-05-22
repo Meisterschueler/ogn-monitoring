@@ -478,24 +478,6 @@ FROM positions
 GROUP BY 1, 2, 3
 WITH NO DATA;
 
-CREATE MATERIALIZED VIEW online_receiver_15m
-WITH (timescaledb.continuous)
-AS
-SELECT
-	time_bucket('5 minutes', ts) AS ts,
-	src_call,
-
-	AVG(ts - receiver_ts) AS latency,
-	COUNT(*) AS messages
-FROM statuses
-WHERE
-	(
-		dst_call = 'OGNSDR'
-		OR (dst_call = 'APRS' AND receiver LIKE 'GLIDERN%')
-	)
-GROUP BY 1, 2
-WITH NO DATA;
-
 CREATE MATERIALIZED VIEW online_receiver_1d
 WITH (timescaledb.continuous, timescaledb.materialized_only = FALSE)
 AS
@@ -503,8 +485,11 @@ SELECT
 	time_bucket('1 day', ts) AS ts,
 	src_call,
 
-	SUM(messages) AS messages,
-	COUNT(*) AS buckets_5m
-FROM online_receiver_5m
+	COUNT(DISTINCT ts) AS buckets_5m,
+	SUM(messages) AS messages
+FROM positions_5m
+WHERE
+	dst_call = 'OGNSDR'
+	OR (dst_call = 'APRS' AND receiver LIKE 'GLIDERN%')
 GROUP BY 1, 2
 WITH NO DATA;

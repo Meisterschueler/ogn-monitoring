@@ -142,14 +142,6 @@ ALTER MATERIALIZED VIEW statuses_receiver_1d SET (timescaledb.compress = true);
 SELECT add_compression_policy('statuses_receiver_1d', compress_after => INTERVAL '16 days');
 
 -- online
-SELECT add_continuous_aggregate_policy('online_receiver_5m',
-  start_offset => INTERVAL '1 hour',
-  end_offset => INTERVAL '5 minutes',
-  initial_start => '2000-01-01 00:00:00'::TIMESTAMPTZ,
-  schedule_interval => INTERVAL'5 minutes');
-ALTER MATERIALIZED VIEW online_receiver_5m SET (timescaledb.compress = true);
-SELECT add_compression_policy('online_receiver_5m', compress_after => INTERVAL '2 hours');
-
 SELECT add_continuous_aggregate_policy('online_receiver_1d',
   start_offset => INTERVAL '8 days',
   end_offset => INTERVAL '1 day',
