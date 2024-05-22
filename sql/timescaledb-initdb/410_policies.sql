@@ -64,22 +64,14 @@ ALTER MATERIALIZED VIEW statistics_receiver_15m SET (timescaledb.compress = true
 SELECT add_compression_policy('statistics_receiver_15m', compress_after => INTERVAL '4 hours');
 
 
--- directions_15m based
-SELECT add_continuous_aggregate_policy('directions_15m',
-  start_offset => INTERVAL '2 hours',
-  end_offset => INTERVAL '15 minutes',
+-- directions
+SELECT add_continuous_aggregate_policy('directions_1h',
+  start_offset => INTERVAL '8 hours',
+  end_offset => INTERVAL '1 hour',
   initial_start => '2000-01-01 00:00:20'::TIMESTAMPTZ,
-  schedule_interval => INTERVAL '15 minutes');
-ALTER MATERIALIZED VIEW directions_15m SET (timescaledb.compress = true);
-SELECT add_compression_policy('directions_15m', compress_after => INTERVAL '4 hours');
-
-SELECT add_continuous_aggregate_policy('directions_1d',
-  start_offset => INTERVAL '8 days',
-  end_offset => INTERVAL '1 day',
-  initial_start => '2000-01-01 00:00:40'::TIMESTAMPTZ,
-  schedule_interval => INTERVAL '1 day');
-ALTER MATERIALIZED VIEW directions_1d SET (timescaledb.compress = true);
-SELECT add_compression_policy('directions_1d', compress_after => INTERVAL '16 days');
+  schedule_interval => INTERVAL '1 hour');
+ALTER MATERIALIZED VIEW directions_1h SET (timescaledb.compress = true);
+SELECT add_compression_policy('directions_1h', compress_after => INTERVAL '16 hours');
 
 
 -- extra view

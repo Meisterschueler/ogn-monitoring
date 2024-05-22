@@ -269,11 +269,11 @@ WITH NO DATA;
 
 
 -- direction statistics (sender -> receiver) for polar diagram
-CREATE MATERIALIZED VIEW directions_15m
+CREATE MATERIALIZED VIEW directions_1h
 WITH (timescaledb.continuous)
 AS
 SELECT
-	time_bucket('15 minutes', ts) AS ts,
+	time_bucket('1 hour', ts) AS ts,
 	src_call,
 	receiver,
 	CAST(((CAST(bearing AS INTEGER) + 15 + 180) % 360) / 30 AS INTEGER) * 30 AS radial,
@@ -291,25 +291,6 @@ WHERE
 	AND bearing IS NOT NULL AND distance IS NOT NULL and normalized_quality IS NOT NULL	
 	AND plausibility IS NOT NULL AND plausibility != -1
 	AND plausibility & b'11110000000000'::INTEGER = 0	-- no fake signal_quality, no fake distance
-GROUP BY 1, 2, 3, 4, 5
-WITH NO DATA;
-
-CREATE MATERIALIZED VIEW directions_1d
-WITH (timescaledb.continuous, timescaledb.materialized_only = FALSE)
-AS
-SELECT
-	time_bucket('1 day', ts) AS ts,
-	src_call,
-	receiver,
-	radial,
-	relative_bearing,
-	
-	MAX(distance) AS distance,
-	MAX(normalized_quality) AS normalized_quality,
-	
-	SUM(messages) AS messages,
-	COUNT(*) AS buckets_15m
-FROM directions_15m
 GROUP BY 1, 2, 3, 4, 5
 WITH NO DATA;
 
