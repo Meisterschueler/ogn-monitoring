@@ -7,14 +7,6 @@ SELECT add_continuous_aggregate_policy('positions_5m',
 ALTER MATERIALIZED VIEW positions_5m SET (timescaledb.compress = true);
 SELECT add_compression_policy('positions_5m', compress_after => INTERVAL '2 hours');
 
-SELECT add_continuous_aggregate_policy('positions_1d',
-  start_offset => INTERVAL '8 days',
-  end_offset => INTERVAL '1 day',
-  initial_start => '2000-01-01 00:00:20'::TIMESTAMPTZ,
-  schedule_interval => INTERVAL '1 day');
-ALTER MATERIALIZED VIEW positions_1d SET (timescaledb.compress = true);
-SELECT add_compression_policy('positions_1d', compress_after => INTERVAL '16 days');
-
 SELECT add_continuous_aggregate_policy('positions_sender_15m',
   start_offset => INTERVAL '2 hours',
   end_offset => INTERVAL '15 minutes',
