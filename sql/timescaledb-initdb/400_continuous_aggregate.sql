@@ -265,6 +265,24 @@ WHERE
 GROUP BY 1, 2, 3, 4, 5
 WITH NO DATA;
 
+CREATE MATERIALIZED VIEW directions_1d
+WITH (timescaledb.continuous, timescaledb.materialized_only = FALSE)
+AS
+SELECT
+	time_bucket('1 day', ts) AS ts,
+	src_call,
+	receiver,
+	radial,
+	relative_bearing,
+	
+	MAX(distance) AS distance,
+	MAX(normalized_quality) AS normalized_quality,
+	
+	SUM(messages) AS messages,
+	COUNT(*) AS buckets_1h
+FROM directions_1h
+GROUP BY 1, 2, 3, 4, 5
+WITH NO DATA;
 
 -- for duplicate recognition
 CREATE MATERIALIZED VIEW positions_sender_original_address_15m
