@@ -147,12 +147,7 @@ SELECT
 		WHEN dj.ddb_registration IS NULL AND dj.ddb_model_type in (1,2,3,4) THEN 'REG:NOIDENT'
 		ELSE 'OK'
 	END AS privacy
-FROM (
-	SELECT * FROM senders
-	UNION
-	SELECT * FROM senders_frozen AS sf
-	WHERE NOT EXISTS (SELECT 1 FROM senders AS s1 WHERE s1.src_call = sf.src_call)
-) AS s
+FROM senders AS s
 LEFT JOIN ddb_joined AS dj ON s.address = dj.ddb_address
 LEFT JOIN flarm_hardware AS fh ON s.hardware_version = fh.hwver
 LEFT JOIN flarm_expiry AS fe ON s.software_version = fe.version

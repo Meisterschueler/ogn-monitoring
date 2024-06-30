@@ -346,7 +346,7 @@ CREATE MATERIALIZED VIEW statuses_15m
 WITH (timescaledb.continuous)
 AS
 SELECT
-	time_bucket('1 day', ts) AS ts,
+	time_bucket('15 minutes', ts) AS ts,
 	src_call,
 	dst_call,
 	receiver,
