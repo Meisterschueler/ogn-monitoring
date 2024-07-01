@@ -6,7 +6,6 @@ SELECT cron.schedule('10,25,40,55 * * * *', '-- plausibilisation
 		''1 hour''::INTERVAL
 	);
 	SELECT update_records(NOW() - INTERVAL''1 hour'', NOW());
-	SELECT update_confirmations(NOW() - INTERVAL''1 hour'', NOW());
 ');
 
 SELECT cron.schedule('5,10,15,20,25,30,35,40,45,50,55 * * * *', '-- receiver updates
@@ -37,4 +36,8 @@ SELECT cron.schedule('8 0 * * *', '-- update relatives
 	REFRESH MATERIALIZED VIEW CONCURRENTLY sender_relative_qualities;
 	REFRESH MATERIALIZED VIEW CONCURRENTLY receiver_relative_qualities;
 	REFRESH MATERIALIZED VIEW CONCURRENTLY duplicates;
+');
+
+SELECT cron.schedule('9 0 * * *', '-- update confirmations
+	SELECT update_confirmations(NOW()::DATE);
 ');
