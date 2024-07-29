@@ -83,6 +83,7 @@ SELECT
   'DDB' AS "source",
   dj.ddb_address AS "address",
   dj.ddb_registration AS "registration",
+  dj.ddb_cn AS "cn",
   dj.ddb_model AS "model"
 FROM ddb_joined AS dj
 
@@ -92,6 +93,7 @@ SELECT
   'OpenSky' AS "source",
   o.address AS "address",
   o.registration AS "registration",
+  NULL AS "cn",
   o.model AS "model"
 FROM opensky AS o
 
@@ -101,6 +103,7 @@ SELECT
   'WeGlide' AS "source",
   w.address AS "address",
   w.registration AS "registration",
+  w.cn AS "cn",
   w.model AS "model"
 FROM weglide AS w
 
@@ -110,6 +113,7 @@ SELECT
   'Flarmnet' AS "source",
   f.address AS "address",
   f.registration AS "registration",
+  CASE WHEN f.cn = '' THEN NULL ELSE f.cn END AS "cn",
   f.model AS "model"
 FROM flarmnet AS f;
 CREATE UNIQUE INDEX registration_joined_idx ON registration_joined(source, address);
