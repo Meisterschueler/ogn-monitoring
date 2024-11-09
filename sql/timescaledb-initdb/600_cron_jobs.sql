@@ -31,6 +31,10 @@ SELECT cron.schedule('7 * * * *', '-- event updates
 	SELECT update_events_sender_position(INTERVAL''1 day'');
 ');
 
+SELECT cron.schedule('18,48 * * * *', '-- ranking updates
+	SELECT update_rankings(NOW() - INTERVAL''2 days'', NOW());
+');
+
 -- daily updates
 SELECT cron.schedule('8 0 * * *', '-- update relatives
 	REFRESH MATERIALIZED VIEW CONCURRENTLY sender_relative_qualities;

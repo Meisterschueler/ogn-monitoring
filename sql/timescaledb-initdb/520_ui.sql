@@ -325,90 +325,76 @@ CREATE UNIQUE INDEX receivers_joined_idx ON receivers_joined (src_call);
 -- create ranking view with the ranking for today
 CREATE MATERIALIZED VIEW ranking
 AS
-WITH records AS (
+WITH day_and_receivers AS (
 	SELECT
-		r1d.*
-	FROM records_1d AS r1d
-	INNER JOIN (
-		SELECT
-			ts,
-			receiver,
-
-			MAX(distance_max) AS distance_max			
-		FROM records_1d
-		WHERE ts > NOW() - INTERVAL '30 days'			-- consider the last 30 days
-		GROUP BY 1, 2
-		HAVING MIN(distance_max) < 200000			-- ignore receivers who see nothing below 200km
-	) AS sq ON r1d.ts = sq.ts AND r1d.receiver = sq.receiver AND r1d.distance_max = sq.distance_max
-	LEFT JOIN (
-		SELECT
-			time_bucket('1 day', ts) AS ts,
-			src_call,
-			bit_or(event) | b'01'::INTEGER != 0 AS position_jumped
-		FROM events_receiver_position
-		WHERE
-			ts > NOW() - INTERVAL '30 days'
-		GROUP BY 1, 2
-	) AS sq2 ON r1d.ts = sq2.ts AND r1d.receiver = sq2.src_call
-	WHERE
-		r1d.ts > NOW() - INTERVAL '30 days'
-		AND COALESCE(sq2.position_jumped, false) IS FALSE
-	ORDER BY ts, receiver
-),
-online_1d AS (
-	SELECT
-		ts,
-		src_call,
-		CAST(buckets_5m AS FLOAT) / MAX(buckets_5m) OVER (PARTITION BY ts) AS online
-	FROM online_receiver_1d
+	*
+FROM
+	(SELECT DISTINCT ts FROM rankings_1d) AS inner1,
+	(SELECT DISTINCT receiver FROM rankings_1d) AS inner2
 )
 
 SELECT
-	sq4.*,
-	row_number() OVER (PARTITION BY sq4.ts ORDER BY points DESC) AS ranking_global,
-	row_number() OVER (PARTITION BY sq4.ts, sq4.iso_a2_eh ORDER BY points DESC) AS ranking_country
+	sq4.ts,
+	sq4.receiver,
+	sq4.iso_a2_eh,
+	sq4.flag,
+	sq4.altitude_max AS altitude,
+	sq4.distance_max AS distance,
+	sq4.ts_first,
+	sq4.ts_last,
+	sq4.src_call,
+	sq4.distance_max_30 AS distance_max,
+	sq4.distance_avg_30 AS distance_avg,
+	sq4.online,
+	sq4.points,
+	sq4.ranking_global,
+	sq4.ranking_country
 FROM (
 	SELECT
 		sq3.*,
-		(sq3.distance_max + sq3.distance_avg) * sq3.online AS points
+	
+		row_number() OVER (PARTITION BY sq3.ts ORDER BY points DESC) AS ranking_global,
+		row_number() OVER (PARTITION BY sq3.ts, sq3.iso_a2_eh ORDER BY points DESC) AS ranking_country
 	FROM (
 		SELECT
-			sq2.ts,
-			sq2.receiver,
-			r.iso_a2_eh,
-			r.flag,
-			r.altitude,
-			sq2.distance_max AS distance,
-			sq2.ts_first,
-			sq2.ts_last,
-			sq2.src_call,
-			MAX(COALESCE(sq2.distance_max, 0)) OVER (PARTITION BY sq2.receiver ORDER BY sq2.ts ROWS BETWEEN 30 PRECEDING AND CURRENT ROW) AS distance_max,
-			AVG(COALESCE(sq2.distance_max, 0)) OVER (PARTITION BY sq2.receiver ORDER BY sq2.ts ROWS BETWEEN 30 PRECEDING AND CURRENT ROW) AS distance_avg,
-			AVG(COALESCE(sq2.online, 0)) OVER (PARTITION BY sq2.src_call ORDER BY sq2.ts ROWS BETWEEN 30 PRECEDING AND CURRENT ROW) AS online
+			sq2.*,
+			
+			sq2.distance_avg_30 AS points
 		FROM (
 			SELECT
-				days_and_receivers.ts,
-				days_and_receivers.receiver,
-
-				r1d.distance_max,
-				r1d.ts_first,
-				r1d.ts_last,
-				r1d.src_call,
-
-				o1d.online
-			FROM
-			(
+				sq.*,
+			
+				r.iso_a2_eh,
+				r.flag,
+				
+				MAX(distance_max) OVER (PARTITION BY sq.receiver ORDER BY sq.ts ROWS BETWEEN 30 PRECEDING AND CURRENT ROW) AS distance_max_30,
+				AVG(distance_max) OVER (PARTITION BY sq.receiver ORDER BY sq.ts ROWS BETWEEN 30 PRECEDING AND CURRENT ROW) AS distance_avg_30,
+				AVG(sq.online) OVER (PARTITION BY sq.receiver ORDER BY sq.ts ROWS BETWEEN 30 PRECEDING AND CURRENT ROW) AS online_avg_30
+			FROM (
 				SELECT
-					*
-				FROM
-					(SELECT DISTINCT ts FROM records) AS inner1,
-					(SELECT DISTINCT receiver FROM records) AS inner2
-			) AS days_and_receivers
-			LEFT JOIN records AS r1d ON r1d.ts = days_and_receivers.ts AND r1d.receiver = days_and_receivers.receiver
-			INNER JOIN online_1d AS o1d ON r1d.ts = o1d.ts AND r1d.receiver = o1d.src_call
+					dar.ts,
+					dar.receiver,
+				
+					r1d.src_call,
+					r1d.ts_first,
+					r1d.ts_last,
+					COALESCE(r1d.distance_min, 0) AS distance_min,
+					COALESCE(r1d.distance_max, 0) AS distance_max,
+					COALESCE(r1d.altitude_min, 0) AS altitude_min,
+					COALESCE(r1d.altitude_max, 0) AS altitude_max,
+					COALESCE(r1d.normalized_quality_min, 0) AS normalized_quality_min,
+					COALESCE(r1d.normalized_quality_max, 0) AS normalized_quality_max,
+					COALESCE(r1d.online, 0) AS online
+				FROM day_and_receivers AS dar
+				LEFT JOIN (
+					SELECT * FROM rankings_1d WHERE is_disqualified IS FALSE
+				) AS r1d ON r1d.ts = dar.ts AND r1d.receiver = dar.receiver
+			) AS sq
+			INNER JOIN receivers_joined AS r ON r.src_call = sq.receiver
+			WHERE r.iso_a2_eh IS NOT NULL
 		) AS sq2
-		INNER JOIN receivers_joined AS r ON sq2.receiver = r.src_call
 	) AS sq3
+	WHERE points > 0
 ) AS sq4;
 CREATE UNIQUE INDEX ranking_idx ON ranking (ts, ranking_global);
 CREATE INDEX ranking_ts_idx ON ranking(ts);

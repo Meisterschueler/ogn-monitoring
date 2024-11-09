@@ -24,3 +24,21 @@ CREATE TABLE IF NOT EXISTS records_1d (
 	normalized_quality_max  DOUBLE PRECISION
 );
 CREATE UNIQUE INDEX records_upsert_idx ON records_1d(ts, src_call, receiver);
+
+CREATE TABLE IF NOT EXISTS rankings_1d (
+    "ts"                TIMESTAMPTZ NOT NULL,
+	receiver            VARCHAR(9) NOT NULL,
+
+	src_call            VARCHAR(9) NOT NULL,
+	ts_first            TIMESTAMPTZ NOT NULL,
+	ts_last             TIMESTAMPTZ NOT NULL,
+	distance_min        DOUBLE PRECISION,
+	distance_max        DOUBLE PRECISION,
+	altitude_min        DOUBLE PRECISION,
+	altitude_max        DOUBLE PRECISION,
+	normalized_quality_min  DOUBLE PRECISION,
+	normalized_quality_max  DOUBLE PRECISION,
+	online				DOUBLE PRECISION,
+	is_disqualified		BOOLEAN
+);
+CREATE UNIQUE INDEX rankings_upsert_idx ON rankings_1d(ts, receiver);
