@@ -5,7 +5,6 @@ Berlin,"Chinese 9dB",,"Terra AB010","rtlsdr.com v3 'silver'"
 Burgberg,"Chinese 9dB",,"Terra AB010","rtlsdr.com v3 'silver'"
 DASSU2,"Chinese 9dB",,"Terra AB010","rtlsdr.com v3 'silver'"
 EDBQ,"Chinese 9dB",,"Terra AB010","rtlsdr.com v3 'silver'"
-EDFU15AB,"Airbatt 165cm Collinear","Sysmocom Cavity","SPF5189","FlightAware Pro Stick"
 EDGE,"Chinese 9dB",,"Terra AB010","rtlsdr.com v3 'silver'"
 EDNC2,"Chinese 9dB",,"Terra AB010","rtlsdr.com v3 'silver'"
 EDNQ,"Chinese 9dB",,"Terra AB010","rtlsdr.com v3 'silver'"
@@ -116,3 +115,4 @@ lmrb2,"Jetvision Active Diapason",,,
 lmrb3,"Jetvision Active Diapason",,,
 lmrb4,"Jetvision Active Diapason",,,
 lmrb5,"Jetvision Active Diapason",,,
+Louka,"Chinese 9dB",,"Neven-YR-CF-868 Cavity","rtlsdr.com v3 'silver'"
