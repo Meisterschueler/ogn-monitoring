@@ -202,6 +202,10 @@ SELECT
 	a.location AS airport_location,
 	a.altitude AS airport_altitude,
 	a.style AS airport_style,
+	s.antenna AS setup_antenna,
+	s.filter AS setup_filter,
+	s.amplifier AS setup_amplifier,
+	s.dongle AS setup_dongle,
 	CASE
 		WHEN r.location IS NOT NULL AND a.location IS NOT NULL AND ST_DistanceSphere(r.location, a.location) < 2500
 		THEN
@@ -315,6 +319,7 @@ CROSS JOIN LATERAL (
 	ORDER BY openaip.location <-> r.location
 	LIMIT 1
 ) AS a
+LEFT JOIN receiver_setups AS s ON rs.receiver = s.receiver
 LEFT JOIN countries AS c ON ST_Contains(c.geom, r.location)
 WHERE
 	r.version IS NOT NULL

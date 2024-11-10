@@ -55,3 +55,6 @@ SELECT
 ORDER BY iso2, regex;
 
 REFRESH MATERIALIZED VIEW ddb_joined;
+
+TRUNCATE receiver_setups;
+\copy receiver_setups FROM '/ressources/receiver_setup.csv' WITH (FORMAT CSV, HEADER TRUE, QUOTE '"');

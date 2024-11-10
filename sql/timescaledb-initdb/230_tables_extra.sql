@@ -83,6 +83,14 @@ CREATE TABLE IF NOT EXISTS countries (
 CREATE INDEX IF NOT EXISTS countries_geom_idx ON countries USING GIST(geom);
 
 
+CREATE TABLE IF NOT EXISTS receiver_setups (
+    receiver            TEXT,
+    antenna             TEXT,
+    filter              TEXT,
+    amplifier           TEXT,
+    dongle              TEXT
+)
+
 -- Tables for nodejs container
 CREATE TABLE IF NOT EXISTS measurements (
     id                  SERIAL PRIMARY KEY,
