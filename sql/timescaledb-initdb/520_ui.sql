@@ -292,7 +292,7 @@ LEFT JOIN (
 	WHERE
 		ts > NOW() - INTERVAL'7 days'
 	GROUP BY 1
-) AS rst ON rs.receiver = rst.src_call
+) AS rst ON rst.src_call = r.src_call
 LEFT JOIN (
 	SELECT
 		src_call,
@@ -303,7 +303,7 @@ LEFT JOIN (
 	FROM events_receiver_status
 	WHERE ts > NOW() - INTERVAL '7 days'
 	GROUP BY 1
-) AS ers ON rs.receiver = ers.src_call
+) AS ers ON ers.src_call = r.src_call
 LEFT JOIN (
 	SELECT
 		src_call,
@@ -312,14 +312,14 @@ LEFT JOIN (
 	FROM events_receiver_position
 	WHERE ts > NOW() - INTERVAL'7 days'
 	GROUP BY src_call
-) AS erp ON rs.receiver = erp.src_call
+) AS erp ON erp.src_call = r.src_call
 CROSS JOIN LATERAL (
 	SELECT *
 	FROM openaip
 	ORDER BY openaip.location <-> r.location
 	LIMIT 1
 ) AS a
-LEFT JOIN receiver_setups AS s ON rs.receiver = s.receiver
+LEFT JOIN receiver_setups AS s ON s.receiver = r.src_call
 LEFT JOIN countries AS c ON ST_Contains(c.geom, r.location)
 WHERE
 	r.version IS NOT NULL
