@@ -23,6 +23,7 @@ services:
       - -cshared_preload_libraries=timescaledb,pg_stat_statements,pg_cron
       - -ccron.database_name=${POSTGRES_DB}
       - -cpg_stat_statements.track=all
+      - -cmax_locks_per_transaction=128
       - -clogging_collector=on
       - -clog_directory=/logs
       - -clog_filename=postgresql.log
@@ -44,7 +45,7 @@ services:
     #command: ["sh", "-c", "gzip -c -d /ogn-logfiles/stdout.log-20230325.gz | ogn-client --source stdin --target postgre-sql --database-url postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@timescaledb:5432/${POSTGRES_DB}"]
     networks:
       - monitoring
-  
+
   ressources:
     image: ressources
     container_name: ressources
@@ -80,7 +81,8 @@ services:
       - monitoring
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:10.0.1
+    #image: grafana/grafana:latest
     user: "0"
     container_name: grafana
     depends_on:
