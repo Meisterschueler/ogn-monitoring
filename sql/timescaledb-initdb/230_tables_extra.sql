@@ -89,7 +89,7 @@ CREATE TABLE IF NOT EXISTS receiver_setups (
     filter              TEXT,
     amplifier           TEXT,
     dongle              TEXT
-)
+);
 
 -- Tables for nodejs container
 CREATE TABLE IF NOT EXISTS measurements (
