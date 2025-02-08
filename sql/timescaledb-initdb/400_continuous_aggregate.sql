@@ -464,3 +464,17 @@ WHERE
 	OR (dst_call = 'APRS' AND receiver LIKE 'GLIDERN%')
 GROUP BY 1, 2
 WITH NO DATA;
+
+CREATE MATERIALIZED VIEW online_sender_1d
+WITH (timescaledb.continuous, timescaledb.materialized_only = FALSE)
+AS
+SELECT
+	time_bucket('1 day', ts) AS ts,
+	src_call,
+
+	SUM(messages) AS messages,
+	COUNT(*) AS buckets_15m,
+	COUNT(DISTINCT receiver) AS receivers
+FROM positions_sender_15m
+GROUP BY 1, 2
+WITH NO DATA;
