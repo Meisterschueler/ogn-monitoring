@@ -642,7 +642,7 @@ EXECUTE '
 	) AS a
 	WHERE
 		receiver_ts BETWEEN ''' || lower || ''' AND ''' || upper || '''
-		e.altitude*0.3048 BETWEEN a.altitude - 100 AND a.altitude + 200
+		AND e.altitude*0.3048 BETWEEN a.altitude - 100 AND a.altitude + 200
 		AND ST_DistanceSphere(e.location, a.location) < 2500
 	ON CONFLICT (src_call, receiver_ts) DO UPDATE
 		SET event = excluded.event;
