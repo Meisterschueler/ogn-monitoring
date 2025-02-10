@@ -3,7 +3,7 @@
 echo --- Started country import ---
 
 echo Download countries zip file
-wget https://www.naturalearthdata.com/http//www.naturalearthdata.com/download/10m/cultural/ne_10m_admin_0_countries.zip -O /ressources/ne_10m_admin_0_countries.zip
+wget https://naciscdn.org/naturalearth/10m/cultural/ne_10m_admin_0_countries.zip -O /ressources/ne_10m_admin_0_countries.zip
 
 echo Unzipping archive
 unzip /ressources/ne_10m_admin_0_countries.zip -o -d /ressources
