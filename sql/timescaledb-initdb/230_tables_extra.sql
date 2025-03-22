@@ -76,6 +76,18 @@ CREATE TABLE IF NOT EXISTS flarmnet (
     radio               TEXT
 );
 
+CREATE TABLE IF NOT EXISTS vereinsflieger (
+    address             INTEGER PRIMARY KEY,
+    registration        TEXT,
+    CN                  TEXT,
+    aircraft_type       SMALLINT,
+    model               TEXT,
+    owner               TEXT,
+    is_club             BOOLEAN,
+    is_duplicate        BOOLEAN
+);
+
+
 CREATE TABLE IF NOT EXISTS countries (
     geom                GEOMETRY(MultiPolygon, 4326),
     iso_a2_eh           CHARACTER VARYING(3)

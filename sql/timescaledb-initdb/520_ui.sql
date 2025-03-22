@@ -47,6 +47,10 @@ SELECT
 	fn.cn AS flarmnet_cn,
 	fn.model AS flarmnet_model,
 	fn.radio AS flarmnet_radio,
+	v.registration AS vereinsflieger_registration,
+	v.cn AS vereinsflieger_cn,
+	v.model AS vereinsflieger_model,
+	v.is_duplicate AS vereinsflieger_is_duplicate,
 	q.relative_quality AS quality_relative_quality,
 	1.0 / 10^(-q.relative_quality/20.0) AS quality_relative_range,
 	iso2_to_emoji(dj.icao24bit_iso2) AS icao24bit_flag,
@@ -65,12 +69,14 @@ SELECT
 		WHEN COALESCE(o.registration, '') != '' THEN o.registration
 		WHEN COALESCE(w.registration, '') != '' THEN w.registration
 		WHEN COALESCE(fn.registration, '') != '' THEN fn.registration
+		WHEN COALESCE(v.registration, '') != '' THEN v.registration
 		ELSE ''
 	END AS registration,
 	CASE
 		WHEN COALESCE(dj.ddb_cn, '') != '' THEN dj.ddb_cn
 		WHEN COALESCE(w.cn, '') != '' THEN w.cn
 		WHEN COALESCE(fn.cn, '') != '' THEN fn.cn
+		WHEN COALESCE(v.cn, '') != '' THEN v.cn
 		ELSE ''
 	END AS cn,
 	CASE
@@ -78,6 +84,7 @@ SELECT
 		WHEN COALESCE(o.model, '') != '' THEN o.model
 		WHEN COALESCE(w.model, '') != '' THEN w.model
 		WHEN COALESCE(fn.model, '') != '' THEN fn.model
+		WHEN COALESCE(v.model, '') != '' THEN v.model
 		ELSE ''
 	END AS model,
 	CASE
@@ -154,6 +161,7 @@ LEFT JOIN flarm_expiry AS fe ON s.software_version = fe.version
 LEFT JOIN opensky AS o ON s.address = o.address
 LEFT JOIN weglide AS w ON s.address = w.address
 LEFT JOIN flarmnet AS fn ON s.address = fn.address
+LEFT JOIN vereinsflieger AS v ON s.address = v.address
 LEFT JOIN (
 	SELECT 
 		src_call,
