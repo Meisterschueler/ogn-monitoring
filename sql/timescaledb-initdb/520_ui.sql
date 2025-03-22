@@ -144,6 +144,12 @@ SELECT
 		ELSE 'ERROR'
 	END AS check_ddb_flarmnet_registration,
 	CASE
+		WHEN v.registration IS NULL OR v.registration = '' THEN ''
+		WHEN dj.ddb_registration IS NULL OR dj.ddb_registration = '' THEN 'WARNING'
+		WHEN dj.ddb_registration IS NOT NULL AND v.registration IS NOT NULL AND dj.ddb_registration = v.registration AND v.is_duplicate IS FALSE THEN 'OK'
+		ELSE 'ERROR'
+	END AS check_ddb_vereinsflieger_registration,
+	CASE
 		WHEN s.is_stealth THEN 'FLARM:STEALTH'
 		WHEN s.is_notrack THEN 'FLARM:NOTRACK'
 		WHEN dj.ddb_is_noident IS NULL THEN 'DDB:UNKNOWN'
