@@ -20,11 +20,14 @@ jobs:
       - name: Run make to build the docker images
         run: make
 
-      - name: Start docker compose services
-        run: docker compose --env-file .env.example up -d
+      - name: Start docker compose services (ignore exit code because timescaledb needs time to start)
+        run: docker compose --env-file .env.example up -d || true
 
-      - name: Wait for services to become healthy (optional)
+      - name: Wait for services to become healthy
         run: sleep 100
+
+      - name: Show the status of the containers
+        run: docker ps -a
 
       - name: Run tests (optional)
         run: docker compose exec -T service_name pytest tests/
