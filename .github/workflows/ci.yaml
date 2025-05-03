@@ -1,4 +1,4 @@
-name: Build and Test with Docker Compose
+name: Build and run
 
 on:
   push:
@@ -17,20 +17,23 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Run make to build the docker images
+      - name: Build the docker images
         run: make
 
-      - name: Start docker compose services (ignore exit code because timescaledb needs time to start)
+      - name: Start docker containers with docker compose (ignore exit code because timescaledb needs time to start)
         run: docker compose --env-file .env.example up -d || true
 
-      - name: Wait for services to become healthy
+      - name: Wait for the containers to become healthy
         run: sleep 100
 
       - name: Show the status of the containers
         run: docker ps -a
 
+      - name: Show the docker compose environment variables
+        run: docker compose --env-file .env.example config || true
+
       - name: Show the docker compose configuration
-        run: docker compose config
+        run: docker compose config --environment || true
 
       - name: Show the logs of the containers
         run: docker compose logs
