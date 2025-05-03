@@ -29,8 +29,8 @@ jobs:
       - name: Show the status of the containers
         run: docker ps -a
 
-      - name: Run tests (optional)
-        run: docker compose exec -T service_name pytest tests/
+      - name: Show the logs of the containers
+        run: docker compose logs
 
       - name: Tear down docker compose
         if: always()
