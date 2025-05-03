@@ -29,6 +29,9 @@ jobs:
       - name: Show the status of the containers
         run: docker ps -a
 
+      - name: Show the docker compose configuration
+        run: docker compose config
+
       - name: Show the logs of the containers
         run: docker compose logs
 
