@@ -20,20 +20,25 @@ jobs:
       - name: Build the docker images
         run: make
 
+      - name: create .env file and set variables
+        run: |
+          cp .env.example .env
+          sed -i 's|^DOCKERVOLUMES=.*|DOCKERVOLUMES=./dockervolumes|' .env
+
+      - name: Create the directory for docker volumes
+        run: mkdir -p ./dockervolumes
+
+      - name: Show the docker compose configuration
+        run: docker compose --env-file .env config
+
       - name: Start docker containers with docker compose (ignore exit code because timescaledb needs time to start)
-        run: docker compose --env-file .env.example up -d || true
+        run: docker compose --env-file .env up -d || true
 
       - name: Wait for the containers to become healthy
         run: sleep 100
 
       - name: Show the status of the containers
         run: docker ps -a
-
-      - name: Show the docker compose environment variables
-        run: docker compose --env-file .env.example config || true
-
-      - name: Show the docker compose configuration
-        run: docker compose config --environment || true
 
       - name: Show the logs of the containers
         run: docker compose logs
