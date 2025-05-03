@@ -35,13 +35,40 @@ jobs:
         run: docker compose --env-file .env up -d || true
 
       - name: Wait for the containers to become healthy
-        run: sleep 100
+        run: sleep 300
 
       - name: Show the status of the containers
         run: docker ps -a
 
-      - name: Show the logs of the containers
-        run: docker compose logs
+      - name: Show the logs of timescaledb
+        run: docker compose logs timescaledb
+
+      - name: Show the logs of ogn
+        run: docker compose logs ogn
+
+      - name: Show the logs of ressources
+        run: docker compose logs ressources
+
+      - name: Show the logs of pgadmin
+        run: docker compose logs pgadmin
+
+      - name: Show the logs of grafana
+        run: docker compose logs grafana
+
+      - name: Show the logs of nginx
+        run: docker compose logs nginx
+
+      - name: Show the logs of promtail
+        run: docker compose logs promtail
+        
+      - name: Show the logs of loki
+        run: docker compose logs loki
+
+      - name: Show the logs of telegraf
+        run: docker compose logs telegraf
+
+      - name: Show the logs of nodejs
+        run: docker compose logs nodejs
 
       - name: Tear down docker compose
         if: always()

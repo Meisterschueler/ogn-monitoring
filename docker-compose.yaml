@@ -10,6 +10,7 @@ services:
 
   timescaledb:
     image: xbgmsharp/timescaledb-postgis:latest
+    user: "1000:1000"
     container_name: timescaledb
     depends_on:
       timescaledb-init:
