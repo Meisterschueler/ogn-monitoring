@@ -1,3 +1,15 @@
+ALTER TABLE errors SET (
+	timescaledb.compress,
+	timescaledb.compress_chunk_time_interval = '20 days'
+);
+SELECT add_compression_policy('errors', compress_after => INTERVAL '1 day');
+
+ALTER TABLE server_comments SET (
+	timescaledb.compress,
+	timescaledb.compress_chunk_time_interval = '20 days'
+);
+SELECT add_compression_policy('server_comments', compress_after => INTERVAL '1 day');
+
 ALTER TABLE positions SET (
 	timescaledb.compress,
 	timescaledb.compress_segmentby = 'src_call',
@@ -11,13 +23,6 @@ ALTER TABLE statuses SET (
 	timescaledb.compress_chunk_time_interval = '20 days'
 );
 SELECT add_compression_policy('statuses', compress_after => INTERVAL '1 day');
-
-ALTER TABLE invalids SET (
-	timescaledb.compress,
-	timescaledb.compress_chunk_time_interval = '20 days'
-);
-SELECT add_compression_policy('invalids', compress_after => INTERVAL '1 day');
-
 
 ALTER TABLE events_receiver_status SET (
 	timescaledb.compress,
