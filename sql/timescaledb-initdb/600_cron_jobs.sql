@@ -2,7 +2,6 @@
 SELECT cron.schedule('5,10,15,20,25,30,35,40,45,50,55 * * * *', '-- receiver updates
 	REFRESH MATERIALIZED VIEW CONCURRENTLY receivers;
 	REFRESH MATERIALIZED VIEW CONCURRENTLY receivers_joined;
-	REFRESH MATERIALIZED VIEW CONCURRENTLY ranking;
 ');
 
 SELECT cron.schedule('6,11,16,21,26,31,36,41,46,51,56 * * * *', '-- sender updates
@@ -23,7 +22,9 @@ SELECT cron.schedule('7 * * * *', '-- event updates
 ');
 
 SELECT cron.schedule('18,48 * * * *', '-- ranking updates
+	SELECT update_records((NOW() - INTERVAL''1 hour'')::DATE, NOW())
 	SELECT update_rankings(NOW() - INTERVAL''2 days'', NOW());
+	REFRESH MATERIALIZED VIEW CONCURRENTLY ranking;
 ');
 
 -- daily updates
