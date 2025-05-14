@@ -33,34 +33,6 @@ WHERE
 GROUP BY 1, 2, 3, 4, 5, 6
 WITH NO DATA;
 
-CREATE MATERIALIZED VIEW positions_sender_15m
-WITH (timescaledb.continuous, timescaledb.materialized_only = FALSE)
-AS
-SELECT
-	time_bucket('15 minutes', ts) AS ts,
-	src_call,
-	receiver,
-
-	MIN(ts_first) AS ts_first,
-	MAX(ts_last) AS ts_last,
-
-	LAST(location, ts) AS location,
-	LAST(altitude, ts) AS altitude,
-	
-	MIN(distance_min) AS distance_min,
-	MAX(distance_max) AS distance_max,
-	MIN(altitude_min) AS altitude_min,
-	MAX(altitude_max) AS altitude_max,
-	MIN(normalized_quality_min) AS normalized_quality_min,
-	MAX(normalized_quality_max) AS normalized_quality_max,
-
-	SUM(messages) AS messages,
-	COUNT(*) AS buckets_5m
-FROM positions_5m
-WHERE dst_call IN ('OGFLR', 'OGNFNT', 'OGNTRK')
-GROUP BY 1, 2, 3
-WITH NO DATA;
-
 CREATE MATERIALIZED VIEW positions_sender_1d
 WITH (timescaledb.continuous, timescaledb.materialized_only = FALSE)
 AS
@@ -81,55 +53,35 @@ SELECT
 	MAX(altitude_max) AS altitude_max,
 	MIN(normalized_quality_min) AS normalized_quality_min,
 	MAX(normalized_quality_max) AS normalized_quality_max,
-
-	SUM(messages) AS messages,
-	SUM(buckets_5m) AS buckets_5m,
-	COUNT(*) AS buckets_15m
-FROM positions_sender_15m
-GROUP BY 1, 2, 3
-WITH NO DATA;
-
-CREATE MATERIALIZED VIEW positions_receiver_15m
-WITH (timescaledb.continuous, timescaledb.materialized_only = FALSE)
-AS
-SELECT
-	time_bucket('15 minutes', ts) AS ts,
-	src_call,
-	dst_call,
-	receiver,
-
-	MIN(ts_first) AS ts_first,
-	MAX(ts_last) AS ts_last,
-	LAST(location, ts) AS location,
-	LAST(altitude, ts) AS altitude,
-
 	SUM(messages) AS messages,
 	COUNT(*) AS buckets_5m
 FROM positions_5m
 WHERE
-	dst_call IN ('OGNSDR', 'APRS')
-GROUP BY 1, 2, 3, 4
+	dst_call IN ('OGFLR', 'OGFLR6', 'OGFLR7', 'OGNFNT', 'OGNTRK')
+GROUP BY 1, 2, 3
 WITH NO DATA;
-
 CREATE MATERIALIZED VIEW positions_receiver_1d
 WITH (timescaledb.continuous, timescaledb.materialized_only = FALSE)
 AS
 SELECT
 	time_bucket('1 day', ts) AS ts,
 	src_call,
-	dst_call,
 	receiver,
 
 	MIN(ts_first) AS ts_first,
 	MAX(ts_last) AS ts_last,
-	LAST(location, ts) AS location,
-	LAST(altitude, ts) AS altitude,
+	LAST(location, ts_last) AS location,
+	LAST(altitude, ts_last) AS altitude,
 
 	SUM(messages) AS messages,
-	SUM(buckets_5m) AS buckets_5m,
-	COUNT(*) AS buckets_15m
-FROM positions_receiver_15m
-GROUP BY 1, 2, 3, 4
+	COUNT(*) AS buckets_5m,
+
+	NOT ST_Equals(FIRST(location, ts_first), LAST(location, ts_last)) AS location_changed,
+	FIRST(altitude, ts_first) != LAST(altitude, ts_last) AS altitude_changed
+FROM positions_5m
+WHERE
+	dst_call IN ('OGNSDR', 'OGNSXR')
+GROUP BY 1, 2, 3
 WITH NO DATA;
 
 CREATE MATERIALIZED VIEW statistics_sender_15m
@@ -151,13 +103,7 @@ SELECT
 	MAX(distance_max) FILTER (WHERE dst_call = 'OGNTRK') AS distance_ogntrk,
 	MAX(distance_max) FILTER (
 		WHERE 
-			plausibility IS NOT NULL
-			AND plausibility != -1
-			AND plausibility & b'11110000111110'::INTEGER = 0		-- no fake signal_quality, no fake distance, no singles, no jumps (but altitude jumps...)
-			AND (
-				plausibility & b'00001000000000'::INTEGER = 0		-- indirect confirmation
-				OR plausibility & b'00000111000000'::INTEGER = 0	-- direct confirmation
-			)
+			plausibility = 0
 			AND distance_max IS NOT NULL
 			AND normalized_quality_max IS NOT NULL
 	) AS distance_confirmed,
@@ -167,13 +113,7 @@ SELECT
 	MAX(normalized_quality_max) FILTER (WHERE dst_call = 'OGNTRK') AS normalized_quality_ogntrk,
 	MAX(normalized_quality_max) FILTER (
 		WHERE 
-			plausibility IS NOT NULL
-			AND plausibility != -1
-			AND plausibility & b'11110000111110'::INTEGER = 0		-- no fake signal_quality, no fake distance, no singles, no jumps (but altitude jumps...)
-			AND (
-				plausibility & b'00001000000000'::INTEGER = 0		-- indirect confirmation
-				OR plausibility & b'00000111000000'::INTEGER = 0	-- direct confirmation
-			)
+			plausibility = 0
 			AND distance_max IS NOT NULL
 			AND normalized_quality_max IS NOT NULL
 	) AS normalized_quality_confirmed,
@@ -204,13 +144,7 @@ SELECT
 	MAX(distance_max) FILTER (WHERE dst_call = 'OGNTRK') AS distance_ogntrk,
 	MAX(distance_max) FILTER (
 		WHERE 
-			plausibility IS NOT NULL
-			AND plausibility != -1
-			AND plausibility & b'11110000111110'::INTEGER = 0		-- no fake signal_quality, no fake distance, no singles, no jumps (but altitude jumps...)
-			AND (
-				plausibility & b'00001000000000'::INTEGER = 0		-- indirect confirmation
-				OR plausibility & b'00000111000000'::INTEGER = 0	-- direct confirmation
-			)
+			plausibility = 0
 			AND distance_max IS NOT NULL
 			AND normalized_quality_max IS NOT NULL
 	) AS distance_confirmed,
@@ -220,13 +154,7 @@ SELECT
 	MAX(normalized_quality_max) FILTER (WHERE dst_call = 'OGNTRK') AS normalized_quality_ogntrk,
 	MAX(normalized_quality_max) FILTER (
 		WHERE 
-			plausibility IS NOT NULL
-			AND plausibility != -1
-			AND plausibility & b'11110000111110'::INTEGER = 0		-- no fake signal_quality, no fake distance, no singles, no jumps (but altitude jumps...)
-			AND (
-				plausibility & b'00001000000000'::INTEGER = 0		-- indirect confirmation
-				OR plausibility & b'00000111000000'::INTEGER = 0	-- direct confirmation
-			)
+			plausibility = 0
 			AND distance_max IS NOT NULL
 			AND normalized_quality_max IS NOT NULL
 	) AS normalized_quality_confirmed,
@@ -260,8 +188,7 @@ WHERE
 	AND dst_call IN ('OGFLR', 'OGNFNT', 'OGNTRK')
 	AND address IS NOT NULL
 	AND bearing IS NOT NULL AND distance IS NOT NULL and normalized_quality IS NOT NULL	
-	AND plausibility IS NOT NULL AND plausibility != -1
-	AND plausibility & b'11110000000000'::INTEGER = 0	-- no fake signal_quality, no fake distance
+	AND plausibility = 0
 GROUP BY 1, 2, 3, 4, 5
 WITH NO DATA;
 
@@ -462,19 +389,5 @@ FROM statuses
 WHERE
 	dst_call = 'OGNSDR'
 	OR (dst_call = 'APRS' AND receiver LIKE 'GLIDERN%')
-GROUP BY 1, 2
-WITH NO DATA;
-
-CREATE MATERIALIZED VIEW online_sender_1d
-WITH (timescaledb.continuous, timescaledb.materialized_only = FALSE)
-AS
-SELECT
-	time_bucket('1 day', ts) AS ts,
-	src_call,
-
-	SUM(messages) AS messages,
-	COUNT(*) AS buckets_15m,
-	COUNT(DISTINCT receiver) AS receivers
-FROM positions_sender_15m
 GROUP BY 1, 2
 WITH NO DATA;
