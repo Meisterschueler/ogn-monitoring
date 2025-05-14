@@ -168,14 +168,36 @@ WITH NO DATA;
 
 
 -- direction statistics (sender -> receiver) for polar diagram
-CREATE MATERIALIZED VIEW directions_1h
+CREATE MATERIALIZED VIEW radial_15m
 WITH (timescaledb.continuous)
 AS
 SELECT
-	time_bucket('1 hour', ts) AS ts,
+	time_bucket('15 minutes', ts) AS ts,
 	src_call,
 	receiver,
 	CAST(((CAST(bearing AS INTEGER) + 15 + 180) % 360) / 30 AS INTEGER) * 30 AS radial,
+	
+	MAX(distance) AS distance,
+	MAX(normalized_quality) AS normalized_quality,
+	
+	COUNT(*) AS messages
+FROM positions
+WHERE
+	src_call NOT LIKE 'RND%'
+	AND dst_call IN ('OGFLR', 'OGFLR6', 'OGFLR7', 'OGNFNT', 'OGNTRK')
+	AND address IS NOT NULL
+	AND bearing IS NOT NULL AND distance IS NOT NULL and normalized_quality IS NOT NULL	
+	AND plausibility = 0
+GROUP BY 1, 2, 3, 4
+WITH NO DATA;
+
+CREATE MATERIALIZED VIEW relative_bearing_15m
+WITH (timescaledb.continuous)
+AS
+SELECT
+	time_bucket('15 minutes', ts) AS ts,
+	src_call,
+	receiver,
 	CAST(((CAST(bearing AS INTEGER) + 15 - course + 360) % 360) / 30 AS INTEGER) * 30 AS relative_bearing,
 	
 	MAX(distance) AS distance,
@@ -185,30 +207,11 @@ SELECT
 FROM positions
 WHERE
 	src_call NOT LIKE 'RND%'
-	AND dst_call IN ('OGFLR', 'OGNFNT', 'OGNTRK')
+	AND dst_call IN ('OGFLR', 'OGFLR6', 'OGFLR7', 'OGNFNT', 'OGNTRK')
 	AND address IS NOT NULL
 	AND bearing IS NOT NULL AND distance IS NOT NULL and normalized_quality IS NOT NULL	
 	AND plausibility = 0
-GROUP BY 1, 2, 3, 4, 5
-WITH NO DATA;
-
-CREATE MATERIALIZED VIEW directions_1d
-WITH (timescaledb.continuous, timescaledb.materialized_only = FALSE)
-AS
-SELECT
-	time_bucket('1 day', ts) AS ts,
-	src_call,
-	receiver,
-	radial,
-	relative_bearing,
-	
-	MAX(distance) AS distance,
-	MAX(normalized_quality) AS normalized_quality,
-	
-	SUM(messages) AS messages,
-	COUNT(*) AS buckets_1h
-FROM directions_1h
-GROUP BY 1, 2, 3, 4, 5
+GROUP BY 1, 2, 3, 4
 WITH NO DATA;
 
 -- for duplicate recognition
