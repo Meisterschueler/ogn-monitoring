@@ -1,4 +1,5 @@
 # OGN monitoring
+![Build Status](https://github.com/Meisterschueler/ogn-monitoring/actions/workflows/ci.yaml/badge.svg)
 
 ## Features
 - [x] overview of the receivers health state

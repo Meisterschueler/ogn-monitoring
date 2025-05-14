@@ -27,13 +27,7 @@ EXECUTE '
             FROM positions_5m
             WHERE
                 ts BETWEEN TIMESTAMP''' || lower || ''' AND TIMESTAMP''' || upper || '''
-                AND plausibility IS NOT NULL
-                AND plausibility != -1
-                AND plausibility & b''11110000111110''::INTEGER = 0		-- no fake signal_quality, no fake distance, no singles, no jumps (but altitude jumps...)
-                AND (
-                    plausibility & b''00001000000000''::INTEGER = 0		-- indirect confirmation
-                    OR plausibility & b''00000111000000''::INTEGER = 0	-- direct confirmation
-                )
+                AND plausibility = 0
                 AND distance_max IS NOT NULL
                 AND altitude_max IS NOT NULL
                 AND normalized_quality_max IS NOT NULL

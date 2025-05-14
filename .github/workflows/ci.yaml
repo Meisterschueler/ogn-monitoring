@@ -1,0 +1,75 @@
+name: Build and run
+
+on:
+  push:
+    branches: [main, development]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build the docker images
+        run: make
+
+      - name: create .env file and set variables
+        run: |
+          cp .env.example .env
+          sed -i 's|^DOCKERVOLUMES=.*|DOCKERVOLUMES=./dockervolumes|' .env
+
+      - name: Create the directory for docker volumes
+        run: mkdir -p ./dockervolumes
+
+      - name: Show the docker compose configuration
+        run: docker compose --env-file .env config
+
+      - name: Start docker containers with docker compose (ignore exit code because timescaledb needs time to start)
+        run: docker compose --env-file .env up -d || true
+
+      - name: Wait for the containers to become healthy
+        run: sleep 300
+
+      - name: Show the status of the containers
+        run: docker ps -a
+
+      - name: Show the logs of timescaledb
+        run: docker compose logs timescaledb
+
+      - name: Show the logs of ogn
+        run: docker compose logs ogn
+
+      - name: Show the logs of ressources
+        run: docker compose logs ressources
+
+      - name: Show the logs of pgadmin
+        run: docker compose logs pgadmin
+
+      - name: Show the logs of grafana
+        run: docker compose logs grafana
+
+      - name: Show the logs of nginx
+        run: docker compose logs nginx
+
+      - name: Show the logs of promtail
+        run: docker compose logs promtail
+        
+      - name: Show the logs of loki
+        run: docker compose logs loki
+
+      - name: Show the logs of telegraf
+        run: docker compose logs telegraf
+
+      - name: Show the logs of nodejs
+        run: docker compose logs nodejs
+
+      - name: Tear down docker compose
+        if: always()
+        run: docker compose down

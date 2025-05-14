@@ -1,18 +1,17 @@
-CREATE TABLE IF NOT EXISTS invalids (
+CREATE TABLE IF NOT EXISTS errors (
     "ts"                TIMESTAMPTZ NOT NULL,
     raw_message         TEXT,
     error_message       TEXT
 );
 
-CREATE TABLE IF NOT EXISTS unknowns (
+CREATE TABLE IF NOT EXISTS server_comments (
     "ts"                TIMESTAMPTZ NOT NULL,
-    raw_message         TEXT,
 
-    -- included in APRS message
-    src_call            VARCHAR(9) NOT NULL,
-    dst_call            VARCHAR(9) NOT NULL,
-    receiver            VARCHAR(9) NOT NULL,
-    comment             TEXT
+    version             TEXT,
+    server_ts           TIMESTAMPTZ,
+    server              TEXT,
+    ip_address          TEXT,
+    port                INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS positions (
@@ -174,8 +173,8 @@ CREATE UNIQUE INDEX idx_takeoffs_src_call ON takeoffs (src_call, receiver_ts);
 
 
 -- create hypertables for messages tables
-SELECT create_hypertable('invalids', 'ts', chunk_time_interval => INTERVAL '10 days');
-SELECT create_hypertable('unknowns', 'ts', chunk_time_interval => INTERVAL '10 days');
+SELECT create_hypertable('errors', 'ts', chunk_time_interval => INTERVAL '10 days');
+SELECT create_hypertable('server_comments', 'ts', chunk_time_interval => INTERVAL '10 days');
 SELECT create_hypertable('positions', 'ts', chunk_time_interval => INTERVAL '1 hour');
 SELECT create_hypertable('statuses', 'ts', chunk_time_interval => INTERVAL '10 days');
 SELECT create_hypertable('events_receiver_status', 'ts', chunk_time_interval => INTERVAL '10 days');

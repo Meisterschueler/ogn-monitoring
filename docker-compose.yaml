@@ -1,7 +1,20 @@
 services:
+  timescaledb-init:
+    image: ogn-client-rs
+    container_name: timescaledb-init
+    restart: "no"
+    volumes:
+      - ${DOCKERVOLUMES}/timescaledb/data:/var/lib/postgresql/data
+      - ${DOCKERVOLUMES}/timescaledb/logs:/logs
+    command: ["sh", "-c", "chown -R 1000:1000 /var/lib/postgresql/data && chown -R 1000:1000 /logs && touch /logs/postgresql.log && chown 1000:1000 /logs/postgresql.log"]
+
   timescaledb:
     image: xbgmsharp/timescaledb-postgis:latest
+    user: "1000:1000"
     container_name: timescaledb
+    depends_on:
+      timescaledb-init:
+        condition: service_completed_successfully
     restart: unless-stopped
     environment:
       PGUSER: ${POSTGRES_USER}
