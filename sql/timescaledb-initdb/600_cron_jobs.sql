@@ -22,7 +22,7 @@ SELECT cron.schedule('7 * * * *', '-- event updates
 ');
 
 SELECT cron.schedule('18,48 * * * *', '-- ranking updates
-	SELECT update_records((NOW() - INTERVAL''1 hour'')::DATE, NOW())
+	SELECT update_records((NOW() - INTERVAL''1 hour'')::DATE, NOW());
 	SELECT update_rankings(NOW() - INTERVAL''2 days'', NOW());
 	REFRESH MATERIALIZED VIEW CONCURRENTLY ranking;
 ');
