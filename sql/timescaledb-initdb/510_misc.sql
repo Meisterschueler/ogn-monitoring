@@ -115,17 +115,7 @@ SELECT
   f.registration AS "registration",
   CASE WHEN f.cn = '' THEN NULL ELSE f.cn END AS "cn",
   f.model AS "model"
-FROM flarmnet AS f
-
-UNION
-
-SELECT
-	'Vereinsflieger' AS "source",
-	v.address AS "address",
-	v.registration AS "registration",
-	v.cn AS "cn",
-	v.model AS "model"
-FROM vereinsflieger AS v;
+FROM flarmnet AS f;
 CREATE UNIQUE INDEX registration_joined_idx ON registration_joined(source, address);
 CREATE INDEX ON registration_joined(address, registration);
 CREATE INDEX ON registration_joined(registration, address);

@@ -60,6 +60,7 @@ WHERE
 	dst_call IN ('OGFLR', 'OGFLR6', 'OGFLR7', 'OGNFNT', 'OGNTRK')
 GROUP BY 1, 2, 3
 WITH NO DATA;
+
 CREATE MATERIALIZED VIEW positions_receiver_1d
 WITH (timescaledb.continuous, timescaledb.materialized_only = FALSE)
 AS

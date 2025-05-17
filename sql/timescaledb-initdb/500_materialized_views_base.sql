@@ -5,7 +5,7 @@ AS
 SELECT
 	src_call,
 
-	LAST(original_address, ts) FILTER (WHERE original_address IS NOT NULL) AS original_address,
+	array_agg(DISTINCT original_address ORDER BY original_address) FILTER (WHERE original_address IS NOT NULL) AS original_addresses,
 
 	LAST(ts_last, ts) AS ts_first,
 	LAST(ts_last, ts) AS ts_last,
@@ -120,7 +120,19 @@ CREATE UNIQUE INDEX receiver_relative_qualities_idx ON receiver_relative_qualiti
 CREATE MATERIALIZED VIEW duplicates
 AS
 SELECT
-	sq.*
+	sq.*,
+	a.name AS airport_name,
+	a.code AS airport_code,
+	a.iso2 AS airport_iso2,
+	iso2_to_emoji(a.iso2) AS airport_flag,
+	a.location AS airport_location,
+	a.altitude AS airport_altitude,
+	a.style AS airport_style,
+	CASE
+		WHEN sq.location IS NOT NULL AND a.location IS NOT NULL THEN ST_DistanceSphere(sq.location, a.location)
+		ELSE NULL
+	END as airport_distance,
+	degrees(ST_Azimuth(sq.location, a.location)) AS airport_radial
 FROM (
 	SELECT 
 		src_call AS src_call,
@@ -150,6 +162,12 @@ FROM (
 	GROUP BY 1, 2
 	HAVING SUM(messages) >= 3 AND COUNT(*) >= 3
 ) AS sq
+CROSS JOIN LATERAL (
+	SELECT *
+	FROM openaip
+	ORDER BY openaip.location <-> sq.location
+	LIMIT 1
+) AS a
 WHERE
 	sq.duplicates > 1
 ORDER BY 1, 2;

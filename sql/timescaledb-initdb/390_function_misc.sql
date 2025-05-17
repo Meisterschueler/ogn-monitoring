@@ -73,3 +73,49 @@ BEGIN
   RETURN result;
 END;
 $$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION address_type_to_string(address_type INTEGER) RETURNS TEXT AS $$
+DECLARE
+  result TEXT := '';
+BEGIN
+
+  result := CASE address_type
+    WHEN 1 THEN 'ICAO'
+    WHEN 2 THEN 'FLARM'
+    WHEN 3 THEN 'OGN'
+    ELSE '?'
+  END;
+
+  RETURN result;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION aircraft_type_to_string(sender_aircraft_type INTEGER) RETURNS TEXT AS $$
+DECLARE
+  result TEXT := '';
+BEGIN
+
+	result := CASE sender_aircraft_type
+		WHEN 1 THEN '(MOTOR)GLIDER'
+		WHEN 2 THEN 'TOWPLANE'
+		WHEN 3 THEN 'HELICOPTER'
+		WHEN 4 THEN 'SKYDIVER'
+		WHEN 5 THEN 'DROPPLANE'
+		WHEN 6 THEN 'HANGGLIDER'
+		WHEN 7 THEN 'PARAGLIDER'
+		WHEN 8 THEN 'PLANE'
+		WHEN 9 THEN 'JET'
+		WHEN 10 THEN 'UFO'
+		WHEN 11 THEN 'BALLOON'
+		WHEN 12 THEN 'AIRSHIP'
+		WHEN 13 THEN 'UAV'
+		WHEN 14 THEN 'GROUND SUPPORT'
+		WHEN 15 THEN 'STATIC OBJECT'
+		ELSE '???'
+	END;
+
+	RETURN result;
+END;
+$$ LANGUAGE plpgsql;
+
