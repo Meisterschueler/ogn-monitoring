@@ -1,4 +1,8 @@
 -- 'Continuous' updates
+SELECT cron.schedule('*/10 * * * *', '-- update elevations
+	SELECT update_elevations(NOW()::TIMESTAMP - INTERVAL''1 hour'', NOW()::TIMESTAMP, INTERVAL''10 minute'')
+');
+
 SELECT cron.schedule('5,10,15,20,25,30,35,40,45,50,55 * * * *', '-- receiver updates
 	REFRESH MATERIALIZED VIEW CONCURRENTLY receivers;
 	REFRESH MATERIALIZED VIEW CONCURRENTLY receivers_joined;
