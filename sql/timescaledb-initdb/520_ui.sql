@@ -47,8 +47,10 @@ SELECT
 	fn.cn AS flarmnet_cn,
 	fn.model AS flarmnet_model,
 	fn.radio AS flarmnet_radio,
-	q.relative_quality AS quality_relative_quality,
-	1.0 / 10^(-q.relative_quality/20.0) AS quality_relative_range,
+	r.distance_min AS records_distance_min,
+	r.distance_max AS records_distance_max,
+	r.normalized_quality_min AS records_normalized_quality_min,
+	r.normalized_quality_max AS records_normalized_quality_max,
 	iso2_to_emoji(dj.icao24bit_iso2) AS icao24bit_flag,
 	CASE
 		WHEN dj.registration_iso2 IS NOT NULL THEN dj.registration_iso2
@@ -163,18 +165,20 @@ LEFT JOIN (
 	GROUP BY src_call
 ) AS toa ON s.src_call = toa.src_call
 LEFT JOIN (
-	SELECT 
-		sq.src_call,
-		SUM(sq.relative_quality * factor) / SUM(factor) AS relative_quality -- older measurements become less important
-	FROM (
-		SELECT
-			src_call,
-			1.0 / row_number() OVER (PARTITION BY src_call ORDER BY ts) AS factor,
-			relative_quality
-		FROM sender_relative_qualities
-	) AS sq
+	SELECT
+		src_call,
+	
+		MIN(distance_min) AS distance_min,
+		MAX(distance_max) AS distance_max,
+		MIN(normalized_quality_min) AS normalized_quality_min,
+		MAX(normalized_quality_max) AS normalized_quality_max,
+	
+		COUNT(*) AS records
+	FROM records_1d
+	WHERE ts BETWEEN NOW()::DATE - INTERVAL'30 days' AND NOW()::DATE
+		 AND (src_call LIKE 'ICA%' OR src_call LIKE 'FLR%')
 	GROUP BY 1
-) AS q ON s.src_call = q.src_call
+) AS r ON s.src_call = r.src_call
 CROSS JOIN LATERAL (
 	SELECT *
 	FROM openaip
