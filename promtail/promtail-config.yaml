@@ -25,22 +25,33 @@ scrape_configs:
       job: nginx
       __path__: /var/log/nginx/*log
   pipeline_stages:
-    - match:
-        selector: '{job="nginx"}'
-        stages:
-        - regex:
-            expression: '^(?P<remote_addr>\S+) - (?P<remote_user>\S+) \[(?P<time_local>[^\]]+)\] \"(?P<method>[A-Z]+) (?P<path>\S+) (?P<http_version>[^\"]+)" (?P<status>\d+) (?P<bytes_sent>\d+) \"(?P<http_referer>[^\"]+)" "(?P<http_user_agent>[^\"]+)"$'
-        - labels:
-            remote_addr:
-            remote_user:
-            time_local:
-            method:
-            path:
-            http_version:
-            status:
-            bytes_sent:
-            http_referer:
-            http_user_agent:
+    - json:
+        expressions:
+          time_local: time_local
+          http_referer: http_referer
+    - timestamp:
+        source: time_local
+        format: "31/Jan/2025:23:59:59 +0000"
+    - regex:
+        source: http_referer
+        expression: 'var\-sel_country=(?P<country>[A-Za-z0-9]+)'
+    - labels:
+        country: country
+    - regex:
+        source: http_referer
+        expression: 'var\-sel_airport=(?P<airport>[A-Za-z0-9\-%]+)'
+    - labels:
+        airport: airport
+    - regex:
+        source: http_referer
+        expression: 'var\-sel_sender=(?P<sender>[A-Z0-9]+)'
+    - labels:
+        sender: sender
+    - regex:
+        source: http_referer
+        expression: 'var\-sel_receiver=(?P<receiver>[A-Za-z0-9]+)'
+    - labels:
+        receiver: receiver
 
 - job_name: timescaledb
   static_configs:
@@ -48,15 +59,11 @@ scrape_configs:
       - localhost
     labels:
       job: timescaledb
-      __path__: /var/log/timescaledb/*log
+      __path__: /var/log/timescaledb/*json
   pipeline_stages:
-    - match:
-        selector: '{job="timescaledb"}'
-        stages:
-        - multiline:
-            firstline: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} UTC'
-        - regex:
-            expression: '^(?P<time>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) UTC (?P<message>(?s:.*))$'
-        - labels:
-            time:
-            message:
+    - json:
+        expressions:
+          timestamp: timestamp
+    - timestamp:
+        source: timestamp
+        format: "2025-01-31 23:59:59.925 UTC"
