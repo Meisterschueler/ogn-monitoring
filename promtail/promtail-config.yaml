@@ -31,7 +31,7 @@ scrape_configs:
           http_referer: http_referer
     - timestamp:
         source: time_local
-        format: "31/Jan/2025:23:59:59 +0000"
+        format: "2/Jan/2006:15:04:05 -0700"
     - regex:
         source: http_referer
         expression: 'var\-sel_country=(?P<country>[A-Za-z0-9]+)'
@@ -66,4 +66,4 @@ scrape_configs:
           timestamp: timestamp
     - timestamp:
         source: timestamp
-        format: "2025-01-31 23:59:59.925 UTC"
+        format: "2006-01-02 15:04:05.000 MST"
