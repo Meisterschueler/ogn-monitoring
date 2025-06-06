@@ -155,9 +155,6 @@ services:
     restart: unless-stopped
     expose:
       - 3100
-    volumes:
-      - ./loki:/etc/loki
-    command: -config.file=/etc/loki/loki-config.yaml
     networks:
       - monitoring
 
