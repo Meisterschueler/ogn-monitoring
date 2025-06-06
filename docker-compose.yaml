@@ -38,8 +38,9 @@ services:
       - -cpg_stat_statements.track=all
       - -cmax_locks_per_transaction=128
       - -clogging_collector=on
+      - -clog_destination=jsonlog
       - -clog_directory=/logs
-      - -clog_filename=postgresql.log
+      - -clog_filename=postgresql.json
       - -clog_statement=ddl
     networks:
       - monitoring

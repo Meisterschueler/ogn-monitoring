@@ -23,7 +23,7 @@ scrape_configs:
       - localhost
     labels:
       job: nginx
-      __path__: /var/log/nginx/*log
+      __path__: /var/log/nginx/*json
   pipeline_stages:
     - json:
         expressions:
