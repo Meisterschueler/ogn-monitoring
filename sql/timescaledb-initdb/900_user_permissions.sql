@@ -10,12 +10,6 @@ CREATE USER grafana WITH PASSWORD 'password';
 CREATE DATABASE grafana;
 ALTER DATABASE grafana OWNER TO grafana;
 
---- create user for telegraf (backend) and give complete access to database 'telegraf'
-CREATE USER telegraf WITH PASSWORD 'password';
-
-CREATE DATABASE telegraf;
-ALTER DATABASE telegraf OWNER TO telegraf;
-
 --- create user for nodejs (backend) and give access for table measurements and screenshots
 CREATE USER nodejs WITH PASSWORD 'password';
 

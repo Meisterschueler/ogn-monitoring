@@ -161,20 +161,6 @@ services:
     networks:
       - monitoring
 
-  telegraf:
-    image: telegraf:latest
-    container_name: telegraf
-    depends_on:
-      - timescaledb
-    restart: unless-stopped
-    environment:
-      TELEGRAF_USER: ${TELEGRAF_USER}
-      TELEGRAF_PASSWORD: ${TELEGRAF_PASSWORD}
-    volumes:
-      - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf
-    networks:
-      - monitoring
-
   nodejs:
     image: nodejs
     container_name: nodejs

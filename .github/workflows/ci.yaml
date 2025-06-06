@@ -64,9 +64,6 @@ jobs:
       - name: Show the logs of loki
         run: docker compose logs loki
 
-      - name: Show the logs of telegraf
-        run: docker compose logs telegraf
-
       - name: Show the logs of nodejs
         run: docker compose logs nodejs
 
