@@ -409,11 +409,12 @@ SELECT
 	LAST(CASE WHEN unparsed LIKE 'amplifier: %' THEN SUBSTRING(unparsed, 12) ELSE NULL END, ts) FILTER (WHERE unparsed LIKE 'amplifier: %') AS amplifier,
 	LAST(CASE WHEN unparsed LIKE 'dongle: %' THEN SUBSTRING(unparsed, 9) ELSE NULL END, ts) FILTER (WHERE unparsed LIKE 'dongle: %') AS dongle,
 	LAST(CASE WHEN unparsed LIKE 'club: %' THEN SUBSTRING(unparsed, 7) ELSE NULL END, ts) FILTER (WHERE unparsed LIKE 'club: %') AS club,
+	LAST(CASE WHEN unparsed LIKE 'email: %' THEN SUBSTRING(unparsed, 8) ELSE NULL END, ts) FILTER (WHERE unparsed LIKE 'email: %') AS email,
 	LAST(CASE WHEN unparsed LIKE 'website: %' THEN SUBSTRING(unparsed, 10) ELSE NULL END, ts) FILTER (WHERE unparsed LIKE 'website: %') AS website,
-	LAST(CASE WHEN unparsed LIKE 'note: %' THEN SUBSTRING(unparsed, 7) ELSE NULL END, ts) FILTER (WHERE unparsed LIKE 'note: %') AS email
+	LAST(CASE WHEN unparsed LIKE 'note: %' THEN SUBSTRING(unparsed, 7) ELSE NULL END, ts) FILTER (WHERE unparsed LIKE 'note: %') AS note
 FROM positions
 WHERE
 	dst_call IN ('OGNSDR', 'OGNSXR')
-	AND unparsed LIKE '%:%'
+	AND unparsed SIMILAR TO '(antenna|filter|amplifier|dongle|club|email|website|note): %'
 GROUP BY 1, 2
 WITH NO DATA;

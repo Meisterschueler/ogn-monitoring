@@ -205,10 +205,14 @@ SELECT
 	a.location AS airport_location,
 	a.altitude AS airport_altitude,
 	a.style AS airport_style,
-	s.antenna AS setup_antenna,
-	s.filter AS setup_filter,
-	s.amplifier AS setup_amplifier,
-	s.dongle AS setup_dongle,
+	CASE WHEN prs.src_call IS NOT NULL THEN prs.antenna ELSE s.antenna END AS setup_antenna,
+	CASE WHEN prs.src_call IS NOT NULL THEN prs.filter ELSE s.filter END AS setup_filter,
+	CASE WHEN prs.src_call IS NOT NULL THEN prs.amplifier ELSE s.amplifier END AS setup_amplifier,
+	CASE WHEN prs.src_call IS NOT NULL THEN prs.dongle ELSE s.dongle END AS setup_dongle,
+	prs.club AS setup_club,
+	prs.email AS setup_email,
+	prs.website AS setup_website,
+	prs.note AS setup_note,
 	CASE
 		WHEN r.location IS NOT NULL AND a.location IS NOT NULL AND ST_DistanceSphere(r.location, a.location) < 2500
 		THEN
@@ -324,6 +328,21 @@ CROSS JOIN LATERAL (
 ) AS a
 LEFT JOIN receiver_setups AS s ON s.receiver = r.src_call
 LEFT JOIN countries AS c ON ST_Contains(c.geom, r.location)
+LEFT JOIN (
+	SELECT
+		src_call,
+	
+		LAST(antenna, ts) AS antenna,
+		LAST(filter, ts) AS filter,
+		LAST(amplifier, ts) AS amplifier,
+		LAST(dongle, ts) AS dongle,
+		LAST(club, ts) AS club,
+		LAST(email, ts) AS email,
+		LAST(website, ts) AS website,
+		LAST(note, ts) AS note
+	FROM positions_receiver_setup_1h
+	GROUP BY 1
+) AS prs ON prs.src_call = r.src_call
 WHERE
 	r.version IS NOT NULL
 	AND r.platform IS NOT NULL
