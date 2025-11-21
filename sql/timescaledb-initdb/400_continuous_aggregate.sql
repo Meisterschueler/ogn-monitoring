@@ -395,3 +395,25 @@ WHERE
 	OR (dst_call = 'APRS' AND receiver LIKE 'GLIDERN%')
 GROUP BY 1, 2
 WITH NO DATA;
+
+-- aggregated receiver setup
+CREATE MATERIALIZED VIEW positions_receiver_setup_1h
+WITH (timescaledb.continuous, timescaledb.materialized_only = TRUE)
+AS
+SELECT
+	time_bucket('1 hour', ts) AS ts,
+	src_call,
+
+	LAST(CASE WHEN unparsed LIKE 'antenna: %' THEN SUBSTRING(unparsed, 10) ELSE NULL END, ts) FILTER (WHERE unparsed LIKE 'antenna: %') AS antenna,
+	LAST(CASE WHEN unparsed LIKE 'filter: %' THEN SUBSTRING(unparsed, 9) ELSE NULL END, ts) FILTER (WHERE unparsed LIKE 'filter: %') AS filter,
+	LAST(CASE WHEN unparsed LIKE 'amplifier: %' THEN SUBSTRING(unparsed, 12) ELSE NULL END, ts) FILTER (WHERE unparsed LIKE 'amplifier: %') AS amplifier,
+	LAST(CASE WHEN unparsed LIKE 'dongle: %' THEN SUBSTRING(unparsed, 9) ELSE NULL END, ts) FILTER (WHERE unparsed LIKE 'dongle: %') AS dongle,
+	LAST(CASE WHEN unparsed LIKE 'club: %' THEN SUBSTRING(unparsed, 7) ELSE NULL END, ts) FILTER (WHERE unparsed LIKE 'club: %') AS club,
+	LAST(CASE WHEN unparsed LIKE 'website: %' THEN SUBSTRING(unparsed, 10) ELSE NULL END, ts) FILTER (WHERE unparsed LIKE 'website: %') AS website,
+	LAST(CASE WHEN unparsed LIKE 'note: %' THEN SUBSTRING(unparsed, 7) ELSE NULL END, ts) FILTER (WHERE unparsed LIKE 'note: %') AS email
+FROM positions
+WHERE
+	dst_call IN ('OGNSDR', 'OGNSXR')
+	AND unparsed LIKE '%:%'
+GROUP BY 1, 2
+WITH NO DATA;

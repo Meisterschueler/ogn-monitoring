@@ -108,3 +108,12 @@ SELECT add_continuous_aggregate_policy('online_receiver_1d',
   schedule_interval => INTERVAL '1 day');
 ALTER MATERIALIZED VIEW online_receiver_1d SET (timescaledb.compress = true);
 SELECT add_compression_policy('online_receiver_1d', compress_after => INTERVAL '16 days');
+
+-- receiver setup
+SELECT add_continuous_aggregate_policy('positions_receiver_setup_1h',
+  start_offset => INTERVAL '8 hours',
+  end_offset => INTERVAL '1 hour',
+  initial_start => '2000-01-01 00:01:40'::TIMESTAMPTZ,
+  schedule_interval => INTERVAL '1 hour');
+ALTER MATERIALIZED VIEW positions_receiver_setup_1h SET (timescaledb.compress = true);
+SELECT add_compression_policy('positions_receiver_setup_1h', compress_after => INTERVAL '16 hours');
